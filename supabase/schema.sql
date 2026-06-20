@@ -43,12 +43,37 @@ create table if not exists public.projects (
   updated_at timestamptz default now()
 );
 
--- Optional: sample data
-insert into public.profiles (full_name, title, bio, location, email, linkedin_url, github_url)
+-- Pastikan row-level security tidak mengganggu read di public site
+alter table public.profiles enable row level security;
+alter table public.experiences enable row level security;
+alter table public.projects enable row level security;
+
+create policy if not exists "Allow public read access to profiles"
+  on public.profiles for select
+  using (true);
+
+create policy if not exists "Allow public read access to experiences"
+  on public.experiences for select
+  using (true);
+
+create policy if not exists "Allow public read access to projects"
+  on public.projects for select
+  using (true);
+
+-- Data demo / default untuk portfolio
+insert into public.profiles (
+  full_name,
+  title,
+  bio,
+  location,
+  email,
+  linkedin_url,
+  github_url
+)
 values (
   'Daniel Tulus Parsaoran Simamora',
   'Web Developer & Tech Enthusiast',
-  'Saya adalah pengembang web yang berdedikasi membangun solusi digital inovatif.',
+  'Saya adalah pengembang web yang berdedikasi membangun solusi digital inovatif dengan performa optimal dan tampilan premium. Fokus saya saat ini adalah Next.js, React, dan integrasi basis data modern.',
   'Indonesia',
   'daniel.simamora@example.com',
   'https://www.linkedin.com/in/daniel-tulus-parsaoran-simamora-208783213/',
@@ -56,14 +81,65 @@ values (
 )
 on conflict do nothing;
 
-insert into public.experiences (company, role, location, start_date, end_date, is_current, description, display_order)
+insert into public.experiences (
+  company,
+  role,
+  location,
+  start_date,
+  end_date,
+  is_current,
+  description,
+  display_order
+)
 values
-  ('Proyek Independen (Freelance)', 'Junior Web Developer', 'Remote', '2024-01-01', null, true, 'Mendesain dan memprogram aplikasi web interaktif menggunakan React/Next.js.', 1),
-  ('Universitas / Pelatihan Mandiri', 'Student of Software Engineering & Web Development', 'Indonesia', '2022-09-01', '2023-12-31', false, 'Mempelajari rekayasa perangkat lunak dan teknologi frontend modern.', 2)
+  (
+    'Proyek Independen (Freelance)',
+    'Junior Web Developer',
+    'Remote',
+    '2024-01-01',
+    null,
+    true,
+    'Mendesain dan memprogram aplikasi web interaktif menggunakan ekosistem React/Next.js dan basis data PostgreSQL. Berkolaborasi langsung dengan klien untuk menerjemahkan kebutuhan bisnis menjadi interface siap pakai.',
+    1
+  ),
+  (
+    'Universitas / Pelatihan Mandiri',
+    'Student of Software Engineering & Web Development',
+    'Indonesia',
+    '2022-09-01',
+    '2023-12-31',
+    false,
+    'Mempelajari dasar rekayasa perangkat lunak, algoritma, pemodelan database relational, serta teknologi frontend modern seperti Tailwind CSS, JavaScript, dan integrasi API.',
+    2
+  )
 on conflict do nothing;
 
-insert into public.projects (title, description, tags, live_url, github_url, display_order)
+insert into public.projects (
+  title,
+  description,
+  tags,
+  image_url,
+  live_url,
+  github_url,
+  display_order
+)
 values
-  ('E-Commerce App (Proyek Portofolio)', 'Aplikasi toko online modern dengan sistem manajemen produk dan pembayaran simulasi.', '{Next.js,TypeScript,Tailwind CSS,Supabase}', '#', '#', 1),
-  ('Sistem Manajemen Tugas Real-time', 'Aplikasi produktivitas berbasis Kanban Board dengan fitur kolaborasi.', '{React.js,Node.js,Express,WebSockets}', '#', '#', 2)
+  (
+    'E-Commerce App (Proyek Portofolio)',
+    'Aplikasi toko online modern dengan sistem manajemen produk, keranjang belanja, proses pembayaran simulasi, dan integrasi Supabase Database.',
+    ARRAY['Next.js', 'TypeScript', 'Tailwind CSS', 'Supabase'],
+    null,
+    '#',
+    '#',
+    1
+  ),
+  (
+    'Sistem Manajemen Tugas Real-time',
+    'Aplikasi produktivitas berbasis Kanban Board dengan fungsionalitas kolaborasi instan, drag-and-drop antarmuka, dan sinkronisasi real-time.',
+    ARRAY['React.js', 'Node.js', 'Express', 'WebSockets'],
+    null,
+    '#',
+    '#',
+    2
+  )
 on conflict do nothing;
