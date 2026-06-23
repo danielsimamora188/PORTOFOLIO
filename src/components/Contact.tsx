@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, MessageCircle, Instagram, ArrowRight, Send, CheckCircle2 } from 'lucide-react';
-import { personalData } from '../data';
 import { Biodata } from '../types';
-import { addContactMessage } from '../firebaseService';
+import { addContactMessageInSupabase } from '../supabaseService';
 
-export default function Contact({ biodata = personalData }: { biodata?: Biodata }) {
+export default function Contact({ biodata }: { biodata?: Biodata }) {
+  if (!biodata) return null;
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -48,7 +49,7 @@ export default function Contact({ biodata = personalData }: { biodata?: Biodata 
     setIsSubmitting(true);
 
     try {
-      await addContactMessage(name.trim(), email.trim(), message.trim());
+      await addContactMessageInSupabase(name.trim(), email.trim(), message.trim());
       setIsSubmitting(false);
       setIsSubmitted(true);
       setName('');

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Linkedin, Instagram, MessageCircle } from 'lucide-react';
-import { personalData } from '../data';
 import { Biodata } from '../types';
 
 interface FooterProps {
@@ -8,7 +7,9 @@ interface FooterProps {
   biodata?: Biodata;
 }
 
-export default function Footer({ onOpenAdmin, biodata = personalData }: FooterProps) {
+export default function Footer({ onOpenAdmin, biodata }: FooterProps) {
+  if (!biodata) return null;
+
   const handleScrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
     const section = document.getElementById(id);

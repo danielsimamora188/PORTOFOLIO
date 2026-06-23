@@ -24,31 +24,30 @@ import {
   GraduationCap,
   Upload
 } from 'lucide-react';
-import { Project, Experience, Biodata, ServiceItem, SkillCategory, Skill } from '../types';
+import { Project, Experience, Biodata, ServiceItem, SkillCategory, Skill, ContactMessage } from '../types';
 import { 
-  getProjects, 
-  addProjectInFirestore, 
-  updateProjectInFirestore, 
-  deleteProjectFromFirestore,
-  getContactMessages,
-  deleteMessageFromFirestore,
-  updateMessageStatus,
-  getExperiences,
-  addExperienceInFirestore,
-  updateExperienceInFirestore,
-  deleteExperienceFromFirestore,
-  getBiodataFromFirestore,
-  updateBiodataInFirestore,
-  getServices,
-  addServiceInFirestore,
-  updateServiceInFirestore,
-  deleteServiceFromFirestore,
-  getSkillsCategories,
-  addSkillCategoryInFirestore,
-  updateSkillCategoryInFirestore,
-  deleteSkillCategoryFromFirestore,
-  ContactMessage
-} from '../firebaseService';
+  getProjectsFromSupabase as getProjects, 
+  addProjectInSupabase as addProjectInFirestore, 
+  updateProjectInSupabase as updateProjectInFirestore, 
+  deleteProjectFromSupabase as deleteProjectFromFirestore,
+  getContactMessagesFromSupabase as getContactMessages,
+  deleteMessageFromSupabase as deleteMessageFromFirestore,
+  updateMessageStatusInSupabase as updateMessageStatus,
+  getExperiencesFromSupabase as getExperiences,
+  addExperienceInSupabase as addExperienceInFirestore,
+  updateExperienceInSupabase as updateExperienceInFirestore,
+  deleteExperienceFromSupabase as deleteExperienceFromFirestore,
+  getBiodataFromSupabase as getBiodataFromFirestore,
+  updateBiodataInSupabase as updateBiodataInFirestore,
+  getServicesFromSupabase as getServices,
+  addServiceInSupabase as addServiceInFirestore,
+  updateServiceInSupabase as updateServiceInFirestore,
+  deleteServiceFromSupabase as deleteServiceFromFirestore,
+  getSkillsCategoriesFromSupabase as getSkillsCategories,
+  addSkillCategoryInSupabase as addSkillCategoryInFirestore,
+  updateSkillCategoryInSupabase as updateSkillCategoryInFirestore,
+  deleteSkillCategoryFromSupabase as deleteSkillCategoryFromFirestore
+} from '../supabaseService';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -338,7 +337,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
       }, 4000);
     } catch (err) {
       console.error(err);
-      setBiodataErrorMsg('Gagal menyimpan biodata ke Firestore.');
+      setBiodataErrorMsg(`Gagal menyimpan biodata: ${(err as any)?.message || String(err)}`);
     } finally {
       setIsUpdatingBiodata(false);
     }
@@ -438,7 +437,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
       window.dispatchEvent(new CustomEvent('portfolio-changed'));
     } catch (err) {
       console.error(err);
-      setActionErrorMsg('Gagal menyimpan project ke Firestore.');
+      setActionErrorMsg(`Gagal menyimpan project: ${(err as any)?.message || String(err)}`);
     } finally {
       setIsSaving(false);
     }
@@ -556,7 +555,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
       window.dispatchEvent(new CustomEvent('experiences-changed'));
     } catch (err) {
       console.error(err);
-      setActionErrorMsg('Gagal menyimpan pengalaman kerja ke Firestore.');
+      setActionErrorMsg(`Gagal menyimpan pengalaman kerja: ${(err as any)?.message || String(err)}`);
     } finally {
       setIsSaving(false);
     }
@@ -613,7 +612,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
       window.dispatchEvent(new CustomEvent('services-changed'));
     } catch (err) {
       console.error(err);
-      setActionErrorMsg('Gagal menyimpan detail layanan ke Firestore.');
+      setActionErrorMsg(`Gagal menyimpan detail layanan: ${(err as any)?.message || String(err)}`);
     } finally {
       setIsSaving(false);
     }
@@ -643,7 +642,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
       window.dispatchEvent(new CustomEvent('skills-changed'));
     } catch (err) {
       console.error(err);
-      setActionErrorMsg('Gagal menyimpan kategori keahlian ke Firestore.');
+      setActionErrorMsg(`Gagal menyimpan kategori keahlian: ${(err as any)?.message || String(err)}`);
     } finally {
       setIsSaving(false);
     }

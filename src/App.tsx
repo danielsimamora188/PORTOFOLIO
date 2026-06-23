@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import Header from './components/Header';
 import Home from './components/Home';
 import About from './components/About';
@@ -8,7 +9,7 @@ import Work from './components/Work';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import AdminPanel from './components/AdminPanel';
-import { getBiodataFromFirestore } from './firebaseService';
+import { getBiodataFromSupabase } from './supabaseService';
 import { Biodata } from './types';
 
 export default function App() {
@@ -16,15 +17,18 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [biodata, setBiodata] = useState<Biodata | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
 
   const fetchBiodata = async () => {
     try {
-      const data = await getBiodataFromFirestore();
+      const data = await getBiodataFromSupabase();
       if (data) {
         setBiodata(data);
       }
     } catch (e) {
       console.error('Error loading dynamic biodata:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,6 +87,34 @@ export default function App() {
     handleScroll(); // Trigger instantly
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0b111e] text-white font-sans">
+        <motion.div
+          animate={{
+            scale: [1, 1.15, 1],
+            rotate: [0, 180, 360],
+          }}
+          transition={{
+            duration: 1.8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="w-16 h-16 border-4 border-t-blue-500 border-r-transparent border-b-indigo-500 border-l-transparent rounded-full mb-6"
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <h2 className="text-lg font-bold tracking-widest uppercase mb-1">Loading Portfolio</h2>
+          <p className="text-xs text-gray-400">Connecting to database...</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen font-sans text-[var(--text-color)] bg-[var(--body-color)] transition-colors duration-300">

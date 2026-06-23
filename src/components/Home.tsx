@@ -1,9 +1,10 @@
 import { motion } from 'motion/react';
 import { Linkedin, Instagram, MessageCircle, Mouse, ArrowDown } from 'lucide-react';
-import { personalData } from '../data';
 import { Biodata } from '../types';
 
-export default function Home({ biodata = personalData }: { biodata?: Biodata }) {
+export default function Home({ biodata }: { biodata?: Biodata }) {
+  if (!biodata) return null;
+
   const handleScrollToSection = (id: string) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth' });

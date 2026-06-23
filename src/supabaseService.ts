@@ -78,6 +78,15 @@ CREATE TABLE IF NOT EXISTS skills (
   "order" INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+-- PENTING: Supabase mengaktifkan Row Level Security (RLS) secara default untuk tabel baru.
+-- Jalankan perintah ini di SQL Editor Supabase Anda untuk menonaktifkan RLS agar aplikasi web bisa membaca & mengedit data:
+ALTER TABLE biodata DISABLE ROW LEVEL SECURITY;
+ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE experiences DISABLE ROW LEVEL SECURITY;
+ALTER TABLE services DISABLE ROW LEVEL SECURITY;
+ALTER TABLE skills DISABLE ROW LEVEL SECURITY;
 */
 
 // =========================================================================

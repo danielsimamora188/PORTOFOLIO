@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ExternalLink, Layers, Laptop, Camera, Feather, Award, Search, Info, X } from 'lucide-react';
-import { projectsData } from '../data';
 import { Project } from '../types';
-import { getProjects } from '../firebaseService';
+import { getProjectsFromSupabase } from '../supabaseService';
 
 export default function Work() {
   const [activeFilter, setActiveFilter] = useState<'all' | 'web' | 'photography' | 'design' | 'certificate'>('all');
   const [selectedDetail, setSelectedDetail] = useState<Project | null>(null);
-  const [projectsList, setProjectsList] = useState<Project[]>(projectsData);
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchProjects() {
       try {
-        const data = await getProjects();
-        setProjectsList(data);
+        const data = await getProjectsFromSupabase();
+        setProjectsList(data || []);
       } catch (err) {
         console.error('Error loading portfolio:', err);
       } finally {

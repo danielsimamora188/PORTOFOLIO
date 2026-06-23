@@ -1,9 +1,10 @@
 import { motion } from 'motion/react';
 import { Award, Briefcase, Headphones } from 'lucide-react';
-import { personalData } from '../data';
 import { Biodata } from '../types';
 
-export default function About({ biodata = personalData }: { biodata?: Biodata }) {
+export default function About({ biodata }: { biodata?: Biodata }) {
+  if (!biodata) return null;
+
   const handleScrollToSection = (id: string) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -58,27 +59,30 @@ export default function About({ biodata = personalData }: { biodata?: Biodata })
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-tr from-[var(--first-color)] to-indigo-500 rounded-3xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500 -z-10" />
 
-              <div className="w-[280px] h-[350px] relative rounded-3xl overflow-hidden shadow-2xl border-4 border-[var(--container-color)] group-hover:border-[var(--first-color)] transition-all duration-300">
-                {/* Fallback Graphic */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950 flex flex-col items-center justify-center p-6 text-center select-none text-white">
-                  <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-4 transform rotate-12 group-hover:rotate-0 transition-transform duration-500">
-                    <Award size={32} className="text-[var(--first-color)]" />
+              <div className="w-[280px] h-[350px] relative rounded-3xl overflow-hidden shadow-2xl border-4 border-[var(--container-color)] group-hover:border-[var(--first-color)] transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-950">
+                {/* Fallback Graphic / Loader in background */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none text-white z-0">
+                  <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4 border border-white/20">
+                    <span className="text-2xl font-bold text-[var(--first-color)]">
+                      {biodata.fullName ? biodata.fullName.charAt(0) : 'P'}
+                    </span>
                   </div>
-                  <h4 className="font-bold text-lg text-white">Creative Studio</h4>
-                  <p className="text-xs text-slate-400 mt-1">Video Editing & Web Development</p>
+                  <h4 className="font-bold text-lg text-white">{biodata.fullName}</h4>
+                  <p className="text-xs text-slate-400 mt-1">{biodata.title || 'Portfolio Owner'}</p>
                 </div>
 
-                {/* Unsplash beautiful editorial camera picture overlay */}
-                <img
-                  src="https://images.unsplash.com/photo-1574717024453-354056afd6fc?w=600&auto=format&fit=crop&q=80" // professional creative studio / video editing workspace representation
-                  alt="Daniel Tulus Editor Workstation"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).onerror = null;
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                  className="w-full h-full object-cover relative z-10 transition-transform duration-500 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
+                {biodata.avatarUrl && (
+                  <img
+                    src={biodata.avatarUrl}
+                    alt={biodata.fullName || 'Profile Picture'}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).onerror = null;
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                    className="w-full h-full object-cover relative z-10 transition-transform duration-500 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
               </div>
             </div>
           </motion.div>

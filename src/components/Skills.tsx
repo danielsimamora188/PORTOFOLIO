@@ -1,21 +1,18 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { BadgeCheck } from 'lucide-react';
-import { skillsData } from '../data';
 import { SkillCategory } from '../types';
-import { getSkillsCategories } from '../firebaseService';
+import { getSkillsCategoriesFromSupabase } from '../supabaseService';
 
 export default function Skills() {
-  const [skillsList, setSkillsList] = useState<SkillCategory[]>(skillsData);
+  const [skillsList, setSkillsList] = useState<SkillCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchSkills() {
       try {
-        const data = await getSkillsCategories();
-        if (data && data.length > 0) {
-          setSkillsList(data);
-        }
+        const data = await getSkillsCategoriesFromSupabase();
+        setSkillsList(data || []);
       } catch (err) {
         console.error('Error loading skills:', err);
       } finally {

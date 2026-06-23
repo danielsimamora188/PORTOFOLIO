@@ -17,9 +17,8 @@ import {
   Layout,
   Camera
 } from 'lucide-react';
-import { experienceData, servicesData } from '../data';
 import { Experience, ServiceItem } from '../types';
-import { getExperiences, getServices } from '../firebaseService';
+import { getExperiencesFromSupabase, getServicesFromSupabase } from '../supabaseService';
 
 const iconMap: Record<string, any> = {
   code: Code,
@@ -35,18 +34,16 @@ const iconMap: Record<string, any> = {
 
 export default function Services() {
   const [activeModal, setActiveModal] = useState<number | null>(null);
-  const [experiencesList, setExperiencesList] = useState<Experience[]>(experienceData);
-  const [servicesList, setServicesList] = useState<ServiceItem[]>(servicesData);
+  const [experiencesList, setExperiencesList] = useState<Experience[]>([]);
+  const [servicesList, setServicesList] = useState<ServiceItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [servicesLoading, setServicesLoading] = useState(true);
 
   useEffect(() => {
     async function fetchExperiences() {
       try {
-        const data = await getExperiences();
-        if (data && data.length > 0) {
-          setExperiencesList(data);
-        }
+        const data = await getExperiencesFromSupabase();
+        setExperiencesList(data || []);
       } catch (err) {
         console.error('Error loading experiences:', err);
       } finally {
@@ -56,10 +53,8 @@ export default function Services() {
     
     async function fetchServices() {
       try {
-        const data = await getServices();
-        if (data && data.length > 0) {
-          setServicesList(data);
-        }
+        const data = await getServicesFromSupabase();
+        setServicesList(data || []);
       } catch (err) {
         console.error('Error loading services:', err);
       } finally {
