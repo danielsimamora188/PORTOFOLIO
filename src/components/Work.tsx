@@ -10,10 +10,7 @@ export default function Work() {
   const [projectsList, setProjectsList] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>(() => [
-    { id: 'web', label: 'Web' },
-    { id: 'photography', label: 'Photo' },
-    { id: 'design', label: 'Design' },
-    { id: 'certificate', label: 'Certificates' }
+    
   ]);
 
   useEffect(() => {
