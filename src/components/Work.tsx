@@ -10,7 +10,10 @@ export default function Work() {
   const [projectsList, setProjectsList] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>(() => [
-    
+    { id: 'web', label: 'Web' },
+    { id: 'photography', label: 'Photo' },
+    { id: 'design', label: 'Design' },
+    { id: 'certificate', label: 'Certificates' }
   ]);
 
   useEffect(() => {
@@ -51,8 +54,9 @@ export default function Work() {
 
   const getIconForCategory = (id: string) => {
     switch (id) {
-      case 'Events': return Laptop;
-      case 'Event Banking': return Camera;
+      case 'web': return Laptop;
+      case 'photography': return Camera;
+      case 'design': return Feather;
       case 'certificate': return Award;
       default: return Laptop;
     }

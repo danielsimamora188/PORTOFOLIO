@@ -162,11 +162,12 @@ export default function Services() {
             {experiencesList.map((exp, idx) => (
               <motion.div
                 key={exp.id}
-                className="bg-[var(--container-color)] p-6 sm:p-8 rounded-3xl border border-gray-200/5 shadow-lg relative flex flex-col justify-between"
+                className="bg-[var(--container-color)] p-6 sm:p-8 rounded-3xl border border-gray-200/5 shadow-lg relative flex flex-col justify-between h-full group"
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ duration: 0.6, delay: idx * 0.15 }}
+                whileHover={{ y: -6 }}
               >
                 <div>
                   <div className="flex justify-between items-center mb-4 gap-2">
@@ -207,7 +208,7 @@ export default function Services() {
                     Achievements:
                   </span>
                   <ul className="space-y-2.5">
-                    {exp.details.map((detail, dIdx) => (
+                    {exp.details && exp.details.map((detail, dIdx) => (
                       <li key={dIdx} className="text-xs text-[var(--text-color)] flex items-start gap-1.5 leading-relaxed">
                         <CornerDownRight size={12} className="text-[var(--first-color)] shrink-0 mt-0.5" />
                         <span>{detail}</span>
@@ -223,7 +224,7 @@ export default function Services() {
 
       {/* Service Popups / Modals */}
       <AnimatePresence>
-        {activeModal !== null && (
+        {activeModal !== null && servicesList[activeModal] && (
           <div className="fixed inset-0 z-101 flex items-center justify-center p-4">
             {/* Dark glass backdrop */}
             <motion.div
@@ -263,7 +264,7 @@ export default function Services() {
                     {servicesList[activeModal].title}
                   </h3>
                   <span className="text-[11px] text-[var(--first-color)] font-medium uppercase tracking-widest block mt-0.5">
-                    Gilbert Services
+                    Daniel Tulus Services
                   </span>
                 </div>
               </div>
@@ -277,7 +278,7 @@ export default function Services() {
                   Detail Pekerjaan:
                 </span>
                 <ul className="space-y-3">
-                  {servicesList[activeModal].checklist.map((item, index) => (
+                  {servicesList[activeModal].checklist && servicesList[activeModal].checklist.map((item, index) => (
                     <motion.li
                       key={index}
                       className="flex items-start gap-3 text-xs sm:text-sm text-[var(--text-color)]"
