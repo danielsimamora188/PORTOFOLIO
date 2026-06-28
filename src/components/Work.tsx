@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ExternalLink, Layers, Laptop, Camera, Feather, Award, Search, Info, X } from 'lucide-react';
+import { ExternalLink, Layers, Laptop, Camera, Feather, Award, Search, Info, X, MessageSquare, Headset, BookOpen, Inbox } from 'lucide-react';
 import { Project } from '../types';
 import { getProjectsFromSupabase, getPortfolioCategoriesFromSupabase } from '../supabaseService';
 
@@ -10,10 +10,10 @@ export default function Work() {
   const [projectsList, setProjectsList] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>(() => [
-    { id: 'web', label: 'Web' },
-    { id: 'photography', label: 'Photo' },
-    { id: 'design', label: 'Design' },
-    { id: 'certificate', label: 'Certificates' }
+    { id: 'livechat', label: 'Live Chat' },
+    { id: 'tickets', label: 'Support Tickets' },
+    { id: 'calls', label: 'Call Center' },
+    { id: 'faq', label: 'Knowledge Base' }
   ]);
 
   useEffect(() => {
@@ -54,11 +54,11 @@ export default function Work() {
 
   const getIconForCategory = (id: string) => {
     switch (id) {
-      case 'web': return Laptop;
-      case 'photography': return Camera;
-      case 'design': return Feather;
-      case 'certificate': return Award;
-      default: return Laptop;
+      case 'livechat': return MessageSquare;
+      case 'tickets': return Inbox;
+      case 'calls': return Headset;
+      case 'faq': return BookOpen;
+      default: return Layers;
     }
   };
 
@@ -79,7 +79,7 @@ export default function Work() {
   // Unique vector mockup illustration renderer for fallback state representation
   const renderMockup = (proj: Project) => {
     switch (proj.category) {
-      case 'web':
+      case 'livechat':
         return (
           <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-indigo-950 flex flex-col justify-between p-4 text-white font-mono select-none">
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
@@ -88,72 +88,70 @@ export default function Work() {
                 <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
               </div>
-              <span className="text-[10px] text-indigo-300">https://daniel.host</span>
-              <Laptop size={12} className="text-indigo-400" />
+              <span className="text-[10px] text-indigo-300">chat.support.local</span>
+              <MessageSquare size={12} className="text-indigo-400" />
             </div>
             <div className="flex-grow flex flex-col justify-center items-center text-center px-4">
-              <CodeIcon name={proj.id} />
+              <MessageSquare size={24} className="text-indigo-400 mb-2" />
               <h4 className="text-xs font-bold text-white mt-2 mb-1 tracking-tight">{proj.title}</h4>
               <p className="text-[9px] text-gray-400 leading-tight line-clamp-2">{proj.description}</p>
             </div>
             <div className="flex items-center justify-between text-[8px] text-indigo-400 border-t border-white/5 pt-2">
-              <span>STATUS: LIVE</span>
-              <span>INDEX: OK</span>
+              <span>STATUS: ONLINE</span>
+              <span>AGENT: READY</span>
             </div>
           </div>
         );
-      case 'photography':
+      case 'tickets':
         return (
           <div className="absolute inset-0 bg-gradient-to-br from-teal-900 to-emerald-950 flex flex-col justify-between p-4 text-white select-none">
             <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-emerald-300">
-              <span>ISO 200</span>
-              <span>1/125s</span>
-              <span>F/4.5</span>
+              <span>TICKET</span>
+              <span>#{(proj.id || '').substring(0, 4).toUpperCase()}</span>
+              <span>HIGH</span>
             </div>
             <div className="flex-grow flex flex-col justify-center items-center relative">
-              <div className="w-14 h-14 rounded-full border-2 border-dashed border-emerald-500/40 flex items-center justify-center transform group-hover:rotate-45 transition-transform duration-1000">
-                <Camera size={22} className="text-emerald-400" />
+              <div className="w-14 h-14 rounded-full border-2 border-dashed border-emerald-500/40 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-500">
+                <Inbox size={22} className="text-emerald-400" />
               </div>
               <span className="text-[9px] text-emerald-300/80 uppercase font-mono tracking-wider mt-2">
-                EXPOSURE: SPOT
+                SLA: 2 HOURS
               </span>
             </div>
             <div className="flex justify-between items-center text-[9px] font-mono text-emerald-500/60 border-t border-emerald-500/10 pt-2">
               <span>{proj.title}</span>
-              <span>M-SHOT</span>
+              <span>RESOLVED</span>
             </div>
           </div>
         );
-      case 'design':
+      case 'calls':
         return (
           <div className="absolute inset-0 bg-gradient-to-br from-purple-900 to-fuchsia-950 flex flex-col justify-between p-4 text-white select-none">
             <div className="flex justify-between items-center text-[9px] font-mono text-fuchsia-300/80">
-              <span>RGB</span>
-              <span>300 DPI</span>
+              <span>INBOUND</span>
+              <span>VOIP</span>
             </div>
             <div className="flex-grow flex flex-col justify-center items-center text-center">
               <div className="w-12 h-12 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/30 flex items-center justify-center mb-2 shadow-inner">
-                <Feather size={20} className="text-fuchsia-400" />
+                <Headset size={20} className="text-fuchsia-400" />
               </div>
               <h4 className="text-xs font-bold leading-tight">{proj.title}</h4>
             </div>
             <div className="flex justify-between items-center text-[9px] font-mono text-fuchsia-400/50 border-t border-fuchsia-500/10 pt-2">
-              <span>CMYK PRINT</span>
-              <span>VECTOR</span>
+              <span>DURATION: 14m</span>
+              <span>CSAT: 5/5</span>
             </div>
           </div>
         );
-      case 'certificate':
+      case 'faq':
         return (
           <div className="absolute inset-0 bg-gradient-to-br from-amber-950 to-orange-950 flex flex-col justify-between p-5 text-white select-none relative overflow-hidden">
-            {/* Backdrop credential grid */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border border-amber-500/5 -z-1" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-dashed border-amber-500/10 -z-1" />
-
             <div className="flex justify-between items-start">
-              <Award size={20} className="text-amber-400 shrink-0" />
+              <BookOpen size={20} className="text-amber-400 shrink-0" />
               <div className="w-10 h-10 border-2 border-amber-500/20 bg-amber-500/5 rounded-full flex items-center justify-center">
-                <span className="text-[8px] font-bold text-amber-300">CERT</span>
+                <span className="text-[8px] font-bold text-amber-300">KB</span>
               </div>
             </div>
             <div className="flex-grow flex flex-col justify-center items-center text-center px-2">
@@ -161,12 +159,12 @@ export default function Work() {
                 {proj.title}
               </h4>
               <span className="text-[8px] text-orange-400/70 block mt-1 uppercase font-mono">
-                Daniel Tulus P.S.
+                Knowledge Base
               </span>
             </div>
             <div className="flex justify-between items-center text-[8px] font-mono text-amber-500/50 border-t border-amber-500/10 pt-2">
-              <span>ID: {(proj.id || '').substring(0, 8).toUpperCase()}</span>
-              <span>BNSP / IPB APPROVED</span>
+              <span>VIEWS: 1.2K</span>
+              <span>HELPFUL: 98%</span>
             </div>
           </div>
         );

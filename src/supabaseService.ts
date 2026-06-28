@@ -1,6 +1,6 @@
 import { getSupabase } from './supabase';
 import { Project, Experience, Biodata, SkillCategory, ServiceItem } from './types';
-import { personalData, projectsData, experienceData, skillsData, servicesData } from './data';
+// Data is now fully loaded from Supabase. No local seeding fallback is bundled.
 
 
 // =========================================================================
@@ -290,135 +290,10 @@ function mapContactFromDb(row: any) {
 }
 
 // =========================================================================
-// SEEDING AND AUTO-INITIALIZATION FUNCTIONS
-// =========================================================================
-
-export async function initializeProjectsInSupabase(): Promise<boolean> {
-  const supabase = getSupabase();
-  if (!supabase) return false;
-  try {
-    const { data, error } = await supabase.from('projects').select('id').limit(1);
-    if (error) {
-      console.warn('Supabase projects check warning:', error);
-      return false;
-    }
-    if (!data || data.length === 0) {
-      console.log('Supabase projects table is empty. Seeding initial data...');
-      const seedData = projectsData.map(proj => mapProjectToDb(proj));
-      const { error: insertError } = await supabase.from('projects').insert(seedData);
-      if (insertError) {
-        console.error('Failed to seed Supabase projects:', insertError);
-        return false;
-      }
-      return true;
-    }
-  } catch (err) {
-    console.error('Supabase seed projects error:', err);
-  }
-  return false;
-}
-
-export async function initializeExperiencesInSupabase(): Promise<boolean> {
-  const supabase = getSupabase();
-  if (!supabase) return false;
-  try {
-    const { data, error } = await supabase.from('experiences').select('id').limit(1);
-    if (error) return false;
-    if (!data || data.length === 0) {
-      console.log('Supabase experiences table is empty. Seeding initial data...');
-      const seedData = experienceData.map(exp => mapExperienceToDb(exp));
-      const { error: insertError } = await supabase.from('experiences').insert(seedData);
-      if (insertError) {
-        console.error('Failed to seed Supabase experiences:', insertError);
-        return false;
-      }
-      return true;
-    }
-  } catch (err) {
-    console.error('Supabase seed experiences error:', err);
-  }
-  return false;
-}
-
-export async function initializeBiodataInSupabase(): Promise<Biodata | null> {
-  const supabase = getSupabase();
-  if (!supabase) return null;
-  try {
-    const { data, error } = await supabase.from('biodata').select('*').eq('id', 'personal-bio').single();
-    if (error && error.code === 'PGRST116') {
-      // Record not found, seed it
-      console.log('Supabase biodata document not found. Seeding initial bio...');
-      const seedBio = { id: 'personal-bio', ...mapBiodataToDb(personalData) };
-      const { data: inserted, error: insertError } = await supabase.from('biodata').insert([seedBio]).select().single();
-      if (insertError) {
-        console.error('Failed to seed Supabase biodata:', insertError);
-        return null;
-      }
-      return mapBiodataFromDb(inserted);
-    } else if (data) {
-      return mapBiodataFromDb(data);
-    }
-  } catch (err) {
-    console.error('Supabase seed biodata error:', err);
-  }
-  return null;
-}
-
-export async function initializeServicesInSupabase(): Promise<boolean> {
-  const supabase = getSupabase();
-  if (!supabase) return false;
-  try {
-    const { data, error } = await supabase.from('services').select('id').limit(1);
-    if (error) return false;
-    if (!data || data.length === 0) {
-      console.log('Supabase services table is empty. Seeding initial services...');
-      const seedData = servicesData.map((svc, index) => ({
-        id: `svc-${index + 1}`,
-        ...mapServiceToDb(svc),
-        order: index
-      }));
-      const { error: insertError } = await supabase.from('services').insert(seedData);
-      if (insertError) {
-        console.error('Failed to seed Supabase services:', insertError);
-        return false;
-      }
-      return true;
-    }
-  } catch (err) {
-    console.error('Supabase seed services error:', err);
-  }
-  return false;
-}
-
-export async function initializeSkillsInSupabase(): Promise<boolean> {
-  const supabase = getSupabase();
-  if (!supabase) return false;
-  try {
-    const { data, error } = await supabase.from('skills').select('id').limit(1);
-    if (error) return false;
-    if (!data || data.length === 0) {
-      console.log('Supabase skills table is empty. Seeding initial skills...');
-      const seedData = skillsData.map((sk, index) => ({
-        id: `sk-${index + 1}`,
-        ...mapSkillToDb(sk),
-        order: index
-      }));
-      const { error: insertError } = await supabase.from('skills').insert(seedData);
-      if (insertError) {
-        console.error('Failed to seed Supabase skills:', insertError);
-        return false;
-      }
-      return true;
-    }
-  } catch (err) {
-    console.error('Supabase seed skills error:', err);
-  }
-  return false;
-}
-
 // =========================================================================
 // MAIN SUPABASE PORTFOLIO API METHODS
 // =========================================================================
+
 
 // Projects
 export async function getProjectsFromSupabase(): Promise<Project[]> {
@@ -427,7 +302,6 @@ export async function getProjectsFromSupabase(): Promise<Project[]> {
     return [];
   }
   try {
-    await initializeProjectsInSupabase();
     const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: true });
     if (error) {
       console.warn('Projects table not ready:', error.message);
@@ -542,7 +416,6 @@ export async function getExperiencesFromSupabase(): Promise<Experience[]> {
     return [];
   }
   try {
-    await initializeExperiencesInSupabase();
     const { data, error } = await supabase.from('experiences').select('*').order('created_at', { ascending: true });
     if (error) {
       console.warn('Experiences table not ready:', error.message);
@@ -622,9 +495,9 @@ export async function getBiodataFromSupabase(): Promise<Biodata> {
   if (!supabase) return emptyBiodata;
 
   try {
-    const bio = await initializeBiodataInSupabase();
-    if (bio) {
-      return bio;
+    const { data, error } = await supabase.from('biodata').select('*').eq('id', 'personal-bio').single();
+    if (!error && data) {
+      return mapBiodataFromDb(data);
     }
   } catch (err) {
     console.error('getBiodataFromSupabase error:', err);
@@ -652,7 +525,6 @@ export async function getServicesFromSupabase(): Promise<ServiceItem[]> {
     return [];
   }
   try {
-    await initializeServicesInSupabase();
     const { data, error } = await supabase.from('services').select('*').order('order', { ascending: true });
     if (error) {
       console.warn('Services table not ready:', error.message);
@@ -715,7 +587,6 @@ export async function getSkillsCategoriesFromSupabase(): Promise<SkillCategory[]
     return [];
   }
   try {
-    await initializeSkillsInSupabase();
     const { data, error } = await supabase.from('skills').select('*').order('order', { ascending: true });
     if (error) {
       console.warn('Skills table not ready:', error.message);

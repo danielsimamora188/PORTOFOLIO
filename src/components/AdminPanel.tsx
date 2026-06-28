@@ -133,14 +133,14 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
 
   // New/Edit Project Form Fields
   const [formTitle, setFormTitle] = useState('');
-  const [formCategory, setFormCategory] = useState<string>('web');
+  const [formCategory, setFormCategory] = useState<string>('livechat');
 
   // Dynamic Portfolio Categories State
   const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>([
-    { id: 'web', label: 'Web' },
-    { id: 'photography', label: 'Photo' },
-    { id: 'design', label: 'Design' },
-    { id: 'certificate', label: 'Certificates' }
+    { id: 'livechat', label: 'Live Chat' },
+    { id: 'tickets', label: 'Support Tickets' },
+    { id: 'calls', label: 'Call Center' },
+    { id: 'faq', label: 'Knowledge Base' }
   ]);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [newCatId, setNewCatId] = useState('');
@@ -484,7 +484,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
     setEditingProjectId(project?.id || null);
     
     setFormTitle(project?.title || '');
-    setFormCategory(project?.category || (portfolioCategories[0]?.id || 'web'));
+    setFormCategory(project?.category || (portfolioCategories[0]?.id || 'livechat'));
     setFormDescription(project?.description || '');
     setFormImageUrl(project?.imageUrl || '');
     setFormButtonLink(project?.buttonLink || '');
@@ -957,16 +957,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                 </button>
               </form>
 
-              <div className="mt-6 pt-5 border-t border-gray-200/5 text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsSqlModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors font-semibold cursor-pointer"
-                >
-                  <Database size={13} />
-                  Database Baru? Klik Setup SQL di sini
-                </button>
-              </div>
+
             </motion.div>
           </div>
         ) : (
@@ -1071,13 +1062,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                 <span>Pengaturan Akun</span>
               </button>
 
-              <button
-                onClick={() => setIsSqlModalOpen(true)}
-                className="shrink-0 md:w-full py-2 px-2.5 md:p-3 rounded-lg md:rounded-xl text-left text-[11px] md:text-xs font-bold text-blue-400 hover:bg-blue-500/10 flex items-center gap-1.5 md:gap-2 transition-all cursor-pointer mt-1"
-              >
-                <Database size={14} className="md:w-[15px] md:h-[15px] text-blue-500" />
-                <span>Setup SQL Supabase</span>
-              </button>
+
 
               <div className="flex-grow hidden md:block" />
 
@@ -1181,9 +1166,9 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                               </td>
                               <td className="py-4 px-4 select-none">
                                 <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                                  proj.category === 'web' ? 'bg-blue-500/10 text-blue-500' :
-                                  proj.category === 'photography' ? 'bg-emerald-500/10 text-emerald-500' :
-                                  proj.category === 'design' ? 'bg-fuchsia-500/10 text-fuchsia-500' :
+                                  proj.category === 'livechat' ? 'bg-blue-500/10 text-blue-500' :
+                                  proj.category === 'tickets' ? 'bg-emerald-500/10 text-emerald-500' :
+                                  proj.category === 'calls' ? 'bg-fuchsia-500/10 text-fuchsia-500' :
                                   'bg-amber-500/10 text-amber-500'
                                 }`}>
                                   {proj.category}
