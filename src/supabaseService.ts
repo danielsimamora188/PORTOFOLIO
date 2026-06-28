@@ -2,6 +2,7 @@ import { getSupabase } from './supabase';
 import { Project, Experience, Biodata, SkillCategory, ServiceItem } from './types';
 import { personalData, projectsData, experienceData, skillsData, servicesData } from './data';
 
+
 // =========================================================================
 // SQL SCHEMA FOR SUPABASE SQL EDITOR
 // =========================================================================
@@ -85,6 +86,12 @@ CREATE TABLE IF NOT EXISTS admin_settings (
   password TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS portfolio_categories (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
 -- PENTING: Supabase mengaktifkan Row Level Security (RLS) secara default untuk tabel baru.
 -- Jalankan perintah ini di SQL Editor Supabase Anda untuk menonaktifkan RLS agar aplikasi web bisa membaca & mengedit data:
 ALTER TABLE biodata DISABLE ROW LEVEL SECURITY;
@@ -94,6 +101,7 @@ ALTER TABLE experiences DISABLE ROW LEVEL SECURITY;
 ALTER TABLE services DISABLE ROW LEVEL SECURITY;
 ALTER TABLE skills DISABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE portfolio_categories DISABLE ROW LEVEL SECURITY;
 */
 
 // =========================================================================
@@ -415,188 +423,352 @@ export async function initializeSkillsInSupabase(): Promise<boolean> {
 // Projects
 export async function getProjectsFromSupabase(): Promise<Project[]> {
   const supabase = getSupabase();
-  if (!supabase) return projectsData;
-  await initializeProjectsInSupabase();
-  const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data || []).map(mapProjectFromDb);
+  if (!supabase) {
+    return [];
+  }
+  try {
+    await initializeProjectsInSupabase();
+    const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: true });
+    if (error) {
+      console.warn('Projects table not ready:', error.message);
+      return [];
+    }
+    return (data || []).map(mapProjectFromDb);
+  } catch (err: any) {
+    console.error('getProjectsFromSupabase error:', err);
+    return [];
+  }
 }
 
 export async function addProjectInSupabase(project: Omit<Project, 'id'> & { id?: string }): Promise<string> {
-  const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
   const id = project.id || `proj-${Date.now()}`;
-  const payload = mapProjectToDb({ ...project, id });
+  const newProject = { ...project, id } as Project;
+
+  const supabase = getSupabase();
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
+  const payload = mapProjectToDb(newProject);
   const { error } = await supabase.from('projects').insert([payload]);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to insert project into Supabase:', error);
+    throw error;
+  }
   return id;
 }
 
 export async function updateProjectInSupabase(id: string, updates: Partial<Omit<Project, 'id'>>): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const payload = mapProjectToDb(updates);
   const { error } = await supabase.from('projects').update(payload).eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to update project in Supabase:', error);
+    throw error;
+  }
 }
 
 export async function deleteProjectFromSupabase(id: string): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('projects').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to delete project from Supabase:', error);
+    throw error;
+  }
 }
 
 // Contacts/Messages
 export async function addContactMessageInSupabase(name: string, email: string, message: string): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('contacts').insert([{ name, email, message, status: 'unread' }]);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to add contact message to Supabase:', error);
+    throw error;
+  }
 }
 
 export async function getContactMessagesFromSupabase(): Promise<any[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
-  const { data, error } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data || []).map(mapContactFromDb);
+  try {
+    const { data, error } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
+    if (error) {
+      console.warn('Contacts table not ready:', error.message);
+      return [];
+    }
+    return (data || []).map(mapContactFromDb);
+  } catch (err) {
+    console.error('getContactMessagesFromSupabase error:', err);
+    return [];
+  }
 }
 
 export async function updateMessageStatusInSupabase(id: string, status: 'unread' | 'read'): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('contacts').update({ status }).eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to update contact status in Supabase:', error);
+    throw error;
+  }
 }
 
 export async function deleteMessageFromSupabase(id: string): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('contacts').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to delete contact from Supabase:', error);
+    throw error;
+  }
 }
 
 // Experiences
 export async function getExperiencesFromSupabase(): Promise<Experience[]> {
   const supabase = getSupabase();
-  if (!supabase) return experienceData;
-  await initializeExperiencesInSupabase();
-  const { data, error } = await supabase.from('experiences').select('*').order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data || []).map(mapExperienceFromDb);
+  if (!supabase) {
+    return [];
+  }
+  try {
+    await initializeExperiencesInSupabase();
+    const { data, error } = await supabase.from('experiences').select('*').order('created_at', { ascending: true });
+    if (error) {
+      console.warn('Experiences table not ready:', error.message);
+      return [];
+    }
+    return (data || []).map(mapExperienceFromDb);
+  } catch (err: any) {
+    console.error('getExperiencesFromSupabase error:', err);
+    return [];
+  }
 }
 
 export async function addExperienceInSupabase(exp: Omit<Experience, 'id'> & { id?: string }): Promise<string> {
-  const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
   const id = exp.id || `exp-${Date.now()}`;
-  const payload = mapExperienceToDb({ ...exp, id });
+  const newExp = { ...exp, id } as Experience;
+
+  const supabase = getSupabase();
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
+  const payload = mapExperienceToDb(newExp);
   const { error } = await supabase.from('experiences').insert([payload]);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to add experience to Supabase:', error);
+    throw error;
+  }
   return id;
 }
 
 export async function updateExperienceInSupabase(id: string, updates: Partial<Omit<Experience, 'id'>>): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const payload = mapExperienceToDb(updates);
   const { error } = await supabase.from('experiences').update(payload).eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to update experience in Supabase:', error);
+    throw error;
+  }
 }
 
 export async function deleteExperienceFromSupabase(id: string): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('experiences').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to delete experience from Supabase:', error);
+    throw error;
+  }
 }
+
+const emptyBiodata: Biodata = {
+  fullName: '',
+  shortName: '',
+  title: '',
+  email: '',
+  whatsapp: '',
+  whatsappLink: '',
+  instagram: '',
+  instagramLink: '',
+  linkedin: '',
+  githubCV: '',
+  cvFilename: '',
+  aboutMe: '',
+  experienceYears: '',
+  projectsCompletedCount: '',
+  supportAvailability: '',
+  avatarUrl: ''
+};
 
 // Biodata
 export async function getBiodataFromSupabase(): Promise<Biodata> {
   const supabase = getSupabase();
-  if (!supabase) return personalData;
-  const bio = await initializeBiodataInSupabase();
-  if (!bio) return personalData;
-  return bio;
+  if (!supabase) return emptyBiodata;
+
+  try {
+    const bio = await initializeBiodataInSupabase();
+    if (bio) {
+      return bio;
+    }
+  } catch (err) {
+    console.error('getBiodataFromSupabase error:', err);
+  }
+  return emptyBiodata;
 }
 
 export async function updateBiodataInSupabase(updates: Partial<Biodata>): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const payload = mapBiodataToDb(updates);
-  const { error } = await supabase.from('biodata').update(payload).eq('id', 'personal-bio');
-  if (error) throw error;
+  const { error } = await supabase.from('biodata').upsert({ id: 'personal-bio', ...payload });
+  if (error) {
+    console.error('Failed to save biodata to Supabase:', error);
+    throw error;
+  }
 }
 
 // Services
 export async function getServicesFromSupabase(): Promise<ServiceItem[]> {
   const supabase = getSupabase();
-  if (!supabase) return servicesData;
-  await initializeServicesInSupabase();
-  const { data, error } = await supabase.from('services').select('*').order('order', { ascending: true });
-  if (error) throw error;
-  return (data || []).map(mapServiceFromDb);
+  if (!supabase) {
+    return [];
+  }
+  try {
+    await initializeServicesInSupabase();
+    const { data, error } = await supabase.from('services').select('*').order('order', { ascending: true });
+    if (error) {
+      console.warn('Services table not ready:', error.message);
+      return [];
+    }
+    return (data || []).map(mapServiceFromDb);
+  } catch (err: any) {
+    console.error('getServicesFromSupabase error:', err);
+    return [];
+  }
 }
 
 export async function addServiceInSupabase(service: Omit<ServiceItem, 'id'>): Promise<string> {
-  const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
   const id = `svc-${Date.now()}`;
-  const payload = { id, ...mapServiceToDb(service) };
+  const supabase = getSupabase();
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
+  const { data } = await supabase.from('services').select('id');
+  const count = data ? data.length : 0;
+  
+  const payload = { id, ...mapServiceToDb(service), order: count };
   const { error } = await supabase.from('services').insert([payload]);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to add service to Supabase:', error);
+    throw error;
+  }
   return id;
 }
 
 export async function updateServiceInSupabase(id: string, updates: Partial<ServiceItem>): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const payload = mapServiceToDb(updates);
   const { error } = await supabase.from('services').update(payload).eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to update service in Supabase:', error);
+    throw error;
+  }
 }
 
 export async function deleteServiceFromSupabase(id: string): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('services').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to delete service from Supabase:', error);
+    throw error;
+  }
 }
 
 // Skills
 export async function getSkillsCategoriesFromSupabase(): Promise<SkillCategory[]> {
   const supabase = getSupabase();
-  if (!supabase) return skillsData;
-  await initializeSkillsInSupabase();
-  const { data, error } = await supabase.from('skills').select('*').order('order', { ascending: true });
-  if (error) throw error;
-  return (data || []).map(mapSkillFromDb);
+  if (!supabase) {
+    return [];
+  }
+  try {
+    await initializeSkillsInSupabase();
+    const { data, error } = await supabase.from('skills').select('*').order('order', { ascending: true });
+    if (error) {
+      console.warn('Skills table not ready:', error.message);
+      return [];
+    }
+    return (data || []).map(mapSkillFromDb);
+  } catch (err: any) {
+    console.error('getSkillsCategoriesFromSupabase error:', err);
+    return [];
+  }
 }
 
 export async function addSkillCategoryInSupabase(category: Omit<SkillCategory, 'id'>): Promise<string> {
-  const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
   const id = `sk-${Date.now()}`;
-  const payload = { id, ...mapSkillToDb(category) };
+  const supabase = getSupabase();
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
+  const { data } = await supabase.from('skills').select('id');
+  const count = data ? data.length : 0;
+
+  const payload = { id, ...mapSkillToDb(category), order: count };
   const { error } = await supabase.from('skills').insert([payload]);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to add skill category to Supabase:', error);
+    throw error;
+  }
   return id;
 }
 
 export async function updateSkillCategoryInSupabase(id: string, updates: Partial<SkillCategory>): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const payload = mapSkillToDb(updates);
   const { error } = await supabase.from('skills').update(payload).eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to update skill category in Supabase:', error);
+    throw error;
+  }
 }
 
 export async function deleteSkillCategoryFromSupabase(id: string): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('skills').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to delete skill category from Supabase:', error);
+    throw error;
+  }
 }
 
 // =========================================================================
@@ -605,46 +777,35 @@ export async function deleteSkillCategoryFromSupabase(id: string): Promise<void>
 
 export async function getAdminSettingsFromSupabase(): Promise<{ email: string; pass: string }> {
   const supabase = getSupabase();
+  const preset = { email: 'daniel.admin@gmail.com', pass: 'danieladmin123' };
   if (!supabase) {
-    return {
-      email: 'daniel.admin@gmail.com',
-      pass: 'danieladmin123'
-    };
+    return preset;
   }
 
   try {
     const { data, error } = await supabase.from('admin_settings').select('*').eq('id', 'admin-auth').single();
     if (error) {
       if (error.code === 'PGRST116') {
-        // Table exists, but record does not. Seed it.
         const seedAdmin = { id: 'admin-auth', email: 'daniel.admin@gmail.com', password: 'danieladmin123' };
         await supabase.from('admin_settings').insert([seedAdmin]);
-        return { email: seedAdmin.email, pass: seedAdmin.password };
+        return preset;
       } else {
-        // Any other error (e.g. table doesn't exist yet), fallback to presets
-        console.warn('Supabase admin_settings fetch error, falling back to presets:', error);
-        return {
-          email: 'daniel.admin@gmail.com',
-          pass: 'danieladmin123'
-        };
+        console.warn('Supabase admin_settings fetch error, falling back to preset:', error);
+        return preset;
       }
     }
     return { email: data.email, pass: data.password };
   } catch (err) {
     console.error('Supabase admin_settings error:', err);
-    return {
-      email: 'daniel.admin@gmail.com',
-      pass: 'danieladmin123'
-    };
+    return preset;
   }
 }
 
 export async function updateAdminSettingsInSupabase(email: string, pass: string): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) {
-    throw new Error('Supabase client not initialized');
+    throw new Error('Supabase client not available');
   }
-
   const { error } = await supabase.from('admin_settings').upsert({ id: 'admin-auth', email, password: pass });
   if (error) {
     console.error('Supabase admin_settings upsert error:', error);
@@ -666,18 +827,16 @@ const DEFAULT_PORTFOLIO_CATEGORIES = [
 export async function getPortfolioCategoriesFromSupabase(): Promise<{ id: string; label: string }[]> {
   const supabase = getSupabase();
   if (!supabase) {
-    return DEFAULT_PORTFOLIO_CATEGORIES;
+    return [];
   }
 
   try {
     const { data, error } = await supabase.from('portfolio_categories').select('*').order('created_at', { ascending: true });
     if (error) {
-      // If table doesn't exist or other error, fallback to defaults
-      console.warn('Supabase portfolio_categories fetch error, falling back to default categories:', error);
-      return DEFAULT_PORTFOLIO_CATEGORIES;
+      console.warn('Supabase portfolio_categories fetch error:', error);
+      return [];
     }
     if (!data || data.length === 0) {
-      // Seed table with defaults
       try {
         await supabase.from('portfolio_categories').insert(DEFAULT_PORTFOLIO_CATEGORIES);
       } catch (seedErr) {
@@ -691,27 +850,42 @@ export async function getPortfolioCategoriesFromSupabase(): Promise<{ id: string
     }));
   } catch (err) {
     console.error('Supabase portfolio_categories error:', err);
-    return DEFAULT_PORTFOLIO_CATEGORIES;
+    return [];
   }
 }
 
 export async function addPortfolioCategoryInSupabase(id: string, label: string): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('portfolio_categories').insert([{ id, label }]);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to add portfolio category to Supabase:', error);
+    throw error;
+  }
 }
 
 export async function updatePortfolioCategoryInSupabase(id: string, label: string): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('portfolio_categories').update({ label }).eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to update portfolio category in Supabase:', error);
+    throw error;
+  }
 }
 
 export async function deletePortfolioCategoryFromSupabase(id: string): Promise<void> {
   const supabase = getSupabase();
-  if (!supabase) throw new Error('Supabase client not initialized');
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
   const { error } = await supabase.from('portfolio_categories').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to delete portfolio category from Supabase:', error);
+    throw error;
+  }
 }

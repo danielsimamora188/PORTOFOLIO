@@ -124,6 +124,8 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
   // Modal forms states
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
+  const [isSqlModalOpen, setIsSqlModalOpen] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingExperienceId, setEditingExperienceId] = useState<string | null>(null);
@@ -876,7 +878,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
               <FolderLock size={22} className="text-blue-100" />
             </div>
             <div>
-              <h1 className="text-lg font-extrabold tracking-tight">Daniel Tulus</h1>
+              <h1 className="text-lg font-extrabold tracking-tight">Gilbert Sidauruk</h1>
               <p className="text-[10px] text-blue-100/80 font-semibold tracking-wider uppercase">Portal Database & Admin Dashboard</p>
             </div>
           </div>
@@ -954,6 +956,17 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                   )}
                 </button>
               </form>
+
+              <div className="mt-6 pt-5 border-t border-gray-200/5 text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsSqlModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors font-semibold cursor-pointer"
+                >
+                  <Database size={13} />
+                  Database Baru? Klik Setup SQL di sini
+                </button>
+              </div>
             </motion.div>
           </div>
         ) : (
@@ -1056,6 +1069,14 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
               >
                 <Settings size={14} className="md:w-[15px] md:h-[15px]" />
                 <span>Pengaturan Akun</span>
+              </button>
+
+              <button
+                onClick={() => setIsSqlModalOpen(true)}
+                className="shrink-0 md:w-full py-2 px-2.5 md:p-3 rounded-lg md:rounded-xl text-left text-[11px] md:text-xs font-bold text-blue-400 hover:bg-blue-500/10 flex items-center gap-1.5 md:gap-2 transition-all cursor-pointer mt-1"
+              >
+                <Database size={14} className="md:w-[15px] md:h-[15px] text-blue-500" />
+                <span>Setup SQL Supabase</span>
               </button>
 
               <div className="flex-grow hidden md:block" />
@@ -2831,6 +2852,279 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                   className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-red-500/10 active:scale-95 transition-all"
                 >
                   Ya, Hapus Data
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {isSqlModalOpen && (
+          <div className="fixed inset-0 z-[1001] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div 
+              className={`w-full max-w-2xl p-6 sm:p-8 rounded-3xl border shadow-2xl relative flex flex-col max-h-[85vh] ${
+                isLightTheme ? 'bg-white border-neutral-200 text-neutral-800' : 'bg-slate-900 border-slate-800 text-slate-100'
+              }`}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <button 
+                onClick={() => setIsSqlModalOpen(false)}
+                className="absolute top-5 right-5 p-1.5 rounded-full hover:bg-gray-500/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                aria-label="Close Setup Guide"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="text-left mb-5">
+                <h3 className="text-lg font-extrabold flex items-center gap-2">
+                  <Database size={20} className="text-blue-500" />
+                  Setup SQL Database Supabase Baru
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Ikuti langkah-langkah di bawah ini untuk membuat tabel database yang dibutuhkan agar fungsi simpan data bekerja dengan benar di database baru Anda.
+                </p>
+              </div>
+
+              <div className="flex-grow overflow-y-auto space-y-4 text-left pr-2 text-xs">
+                <div className={`p-4 rounded-xl border ${isLightTheme ? 'bg-blue-50/50 border-blue-100 text-blue-900' : 'bg-blue-950/20 border-blue-900/30 text-blue-300'}`}>
+                  <h4 className="font-bold mb-1.5 flex items-center gap-1.5 text-xs">
+                    💡 Cara Penggunaan di Supabase:
+                  </h4>
+                  <ol className="list-decimal list-inside space-y-1 text-xs leading-relaxed">
+                    <li>Buka dashboard proyek baru Anda di <strong><a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-400">https://supabase.com</a></strong></li>
+                    <li>Klik menu <strong>SQL Editor</strong> di bilah navigasi kiri (ikon <code className="px-1 py-0.5 rounded bg-black/15 text-white">SQL</code>)</li>
+                    <li>Klik tombol <strong>New query</strong> (Kueri baru)</li>
+                    <li>Tempel (paste) kode SQL di bawah ini</li>
+                    <li>Klik tombol hijau <strong>Run</strong> di kanan bawah untuk membuat seluruh tabel secara otomatis</li>
+                  </ol>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute right-3 top-3 z-10">
+                    <button
+                      onClick={() => {
+                        const sqlText = `-- 1. BUAT TABEL BIODATA
+CREATE TABLE IF NOT EXISTS biodata (
+  id TEXT PRIMARY KEY DEFAULT 'personal-bio',
+  full_name TEXT,
+  short_name TEXT,
+  title TEXT,
+  email TEXT,
+  whatsapp TEXT,
+  whatsapp_link TEXT,
+  instagram TEXT,
+  instagram_link TEXT,
+  linkedin TEXT,
+  github_cv TEXT,
+  cv_filename TEXT,
+  about_me TEXT,
+  experience_years TEXT,
+  projects_completed_count TEXT,
+  support_availability TEXT,
+  avatar_url TEXT
+);
+
+-- 2. BUAT TABEL PROJECTS
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  description TEXT NOT NULL,
+  image_url TEXT,
+  button_link TEXT,
+  detail_text TEXT,
+  specs TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 3. BUAT TABEL CONTACTS
+CREATE TABLE IF NOT EXISTS contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'unread',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 4. BUAT TABEL EXPERIENCES
+CREATE TABLE IF NOT EXISTS experiences (
+  id TEXT PRIMARY KEY,
+  company TEXT NOT NULL,
+  location TEXT NOT NULL,
+  role TEXT NOT NULL,
+  period TEXT NOT NULL,
+  image_url TEXT,
+  description TEXT NOT NULL,
+  details JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 5. BUAT TABEL SERVICES
+CREATE TABLE IF NOT EXISTS services (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  checklist JSONB NOT NULL DEFAULT '[]'::jsonb,
+  "order" INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 6. BUAT TABEL SKILLS
+CREATE TABLE IF NOT EXISTS skills (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  skills JSONB NOT NULL DEFAULT '[]'::jsonb,
+  "order" INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 7. BUAT TABEL ADMIN_SETTINGS
+CREATE TABLE IF NOT EXISTS admin_settings (
+  id TEXT PRIMARY KEY DEFAULT 'admin-auth',
+  email TEXT NOT NULL,
+  password TEXT NOT NULL
+);
+
+-- 8. BUAT TABEL PORTFOLIO_CATEGORIES
+CREATE TABLE IF NOT EXISTS portfolio_categories (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 9. NONAKTIFKAN ROW LEVEL SECURITY (RLS)
+ALTER TABLE biodata DISABLE ROW LEVEL SECURITY;
+ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE experiences DISABLE ROW LEVEL SECURITY;
+ALTER TABLE services DISABLE ROW LEVEL SECURITY;
+ALTER TABLE skills DISABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE portfolio_categories DISABLE ROW LEVEL SECURITY;`;
+                        navigator.clipboard.writeText(sqlText);
+                        setCopiedSql(true);
+                        setTimeout(() => setCopiedSql(false), 3000);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] cursor-pointer flex items-center gap-1 shadow-md active:scale-95 transition-all"
+                    >
+                      {copiedSql ? 'Tersalin!' : 'Salin SQL'}
+                    </button>
+                  </div>
+
+                  <pre className="p-4 rounded-xl font-mono text-[10px] leading-relaxed overflow-x-auto text-left max-h-[250px] bg-slate-950 text-emerald-400 border border-slate-800 scrollbar-thin select-all">
+{`-- 1. BUAT TABEL BIODATA
+CREATE TABLE IF NOT EXISTS biodata (
+  id TEXT PRIMARY KEY DEFAULT 'personal-bio',
+  full_name TEXT,
+  short_name TEXT,
+  title TEXT,
+  email TEXT,
+  whatsapp TEXT,
+  whatsapp_link TEXT,
+  instagram TEXT,
+  instagram_link TEXT,
+  linkedin TEXT,
+  github_cv TEXT,
+  cv_filename TEXT,
+  about_me TEXT,
+  experience_years TEXT,
+  projects_completed_count TEXT,
+  support_availability TEXT,
+  avatar_url TEXT
+);
+
+-- 2. BUAT TABEL PROJECTS
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  description TEXT NOT NULL,
+  image_url TEXT,
+  button_link TEXT,
+  detail_text TEXT,
+  specs TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 3. BUAT TABEL CONTACTS
+CREATE TABLE IF NOT EXISTS contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'unread',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 4. BUAT TABEL EXPERIENCES
+CREATE TABLE IF NOT EXISTS experiences (
+  id TEXT PRIMARY KEY,
+  company TEXT NOT NULL,
+  location TEXT NOT NULL,
+  role TEXT NOT NULL,
+  period TEXT NOT NULL,
+  image_url TEXT,
+  description TEXT NOT NULL,
+  details JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 5. BUAT TABEL SERVICES
+CREATE TABLE IF NOT EXISTS services (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  checklist JSONB NOT NULL DEFAULT '[]'::jsonb,
+  "order" INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 6. BUAT TABEL SKILLS
+CREATE TABLE IF NOT EXISTS skills (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  skills JSONB NOT NULL DEFAULT '[]'::jsonb,
+  "order" INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 7. BUAT TABEL ADMIN_SETTINGS
+CREATE TABLE IF NOT EXISTS admin_settings (
+  id TEXT PRIMARY KEY DEFAULT 'admin-auth',
+  email TEXT NOT NULL,
+  password TEXT NOT NULL
+);
+
+-- 8. BUAT TABEL PORTFOLIO_CATEGORIES
+CREATE TABLE IF NOT EXISTS portfolio_categories (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 9. NONAKTIFKAN ROW LEVEL SECURITY (RLS)
+ALTER TABLE biodata DISABLE ROW LEVEL SECURITY;
+ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE experiences DISABLE ROW LEVEL SECURITY;
+ALTER TABLE services DISABLE ROW LEVEL SECURITY;
+ALTER TABLE skills DISABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE portfolio_categories DISABLE ROW LEVEL SECURITY;`}
+                  </pre>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end border-t border-gray-200/5 pt-4 mt-4">
+                <button
+                  onClick={() => setIsSqlModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer shadow-md active:scale-95 transition-all"
+                >
+                  Selesai & Tutup
                 </button>
               </div>
             </motion.div>
