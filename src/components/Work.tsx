@@ -51,9 +51,8 @@ export default function Work() {
 
   const getIconForCategory = (id: string) => {
     switch (id) {
-      case 'web': return Laptop;
-      case 'photography': return Camera;
-      case 'design': return Feather;
+      case 'Events': return Laptop;
+      case 'Event Banking': return Camera;
       case 'certificate': return Award;
       default: return Laptop;
     }
