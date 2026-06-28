@@ -79,6 +79,12 @@ CREATE TABLE IF NOT EXISTS skills (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+CREATE TABLE IF NOT EXISTS admin_settings (
+  id TEXT PRIMARY KEY DEFAULT 'admin-auth',
+  email TEXT NOT NULL,
+  password TEXT NOT NULL
+);
+
 -- PENTING: Supabase mengaktifkan Row Level Security (RLS) secara default untuk tabel baru.
 -- Jalankan perintah ini di SQL Editor Supabase Anda untuk menonaktifkan RLS agar aplikasi web bisa membaca & mengedit data:
 ALTER TABLE biodata DISABLE ROW LEVEL SECURITY;
@@ -87,6 +93,7 @@ ALTER TABLE contacts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE experiences DISABLE ROW LEVEL SECURITY;
 ALTER TABLE services DISABLE ROW LEVEL SECURITY;
 ALTER TABLE skills DISABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_settings DISABLE ROW LEVEL SECURITY;
 */
 
 // =========================================================================
@@ -590,4 +597,69 @@ export async function deleteSkillCategoryFromSupabase(id: string): Promise<void>
   if (!supabase) throw new Error('Supabase client not initialized');
   const { error } = await supabase.from('skills').delete().eq('id', id);
   if (error) throw error;
+}
+
+// =========================================================================
+// ADMIN SETTINGS MANAGEMENT
+// =========================================================================
+
+export async function getAdminSettingsFromSupabase(): Promise<{ email: string; pass: string }> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return {
+      email: localStorage.getItem('daniel_admin_email') || 'daniel.admin@gmail.com',
+      pass: localStorage.getItem('daniel_admin_password') || 'danieladmin123'
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.from('admin_settings').select('*').eq('id', 'admin-auth').single();
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Table exists, but record does not. Seed it.
+        const seedAdmin = { id: 'admin-auth', email: 'daniel.admin@gmail.com', password: 'danieladmin123' };
+        await supabase.from('admin_settings').insert([seedAdmin]);
+        return { email: seedAdmin.email, pass: seedAdmin.password };
+      } else {
+        // Any other error (e.g. table doesn't exist yet), fallback to localStorage/presets
+        console.warn('Supabase admin_settings fetch error, falling back to local storage / presets:', error);
+        return {
+          email: localStorage.getItem('daniel_admin_email') || 'daniel.admin@gmail.com',
+          pass: localStorage.getItem('daniel_admin_password') || 'danieladmin123'
+        };
+      }
+    }
+    return { email: data.email, pass: data.password };
+  } catch (err) {
+    console.error('Supabase admin_settings error:', err);
+    return {
+      email: localStorage.getItem('daniel_admin_email') || 'daniel.admin@gmail.com',
+      pass: localStorage.getItem('daniel_admin_password') || 'danieladmin123'
+    };
+  }
+}
+
+export async function updateAdminSettingsInSupabase(email: string, pass: string): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    localStorage.setItem('daniel_admin_email', email);
+    localStorage.setItem('daniel_admin_password', pass);
+    return;
+  }
+
+  try {
+    const { error } = await supabase.from('admin_settings').upsert({ id: 'admin-auth', email, password: pass });
+    if (error) {
+      console.warn('Supabase admin_settings upsert error, saving locally as fallback:', error);
+      localStorage.setItem('daniel_admin_email', email);
+      localStorage.setItem('daniel_admin_password', pass);
+    } else {
+      localStorage.setItem('daniel_admin_email', email);
+      localStorage.setItem('daniel_admin_password', pass);
+    }
+  } catch (err) {
+    console.error('Supabase admin_settings upsert error:', err);
+    localStorage.setItem('daniel_admin_email', email);
+    localStorage.setItem('daniel_admin_password', pass);
+  }
 }

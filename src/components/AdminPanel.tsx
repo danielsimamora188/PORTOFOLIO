@@ -48,7 +48,9 @@ import {
   getSkillsCategoriesFromSupabase as getSkillsCategories,
   addSkillCategoryInSupabase as addSkillCategoryInFirestore,
   updateSkillCategoryInSupabase as updateSkillCategoryInFirestore,
-  deleteSkillCategoryFromSupabase as deleteSkillCategoryFromFirestore
+  deleteSkillCategoryFromSupabase as deleteSkillCategoryFromFirestore,
+  getAdminSettingsFromSupabase as getAdminSettings,
+  updateAdminSettingsInSupabase as updateAdminSettings
 } from '../supabaseService';
 
 interface AdminPanelProps {
@@ -243,6 +245,16 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
     if (savedSession === 'true') {
       setIsLoggedIn(true);
     }
+
+    async function fetchAdminEmail() {
+      try {
+        const dbCreds = await getAdminSettings();
+        setAdminEmailInput(dbCreds.email);
+      } catch (e) {
+        console.error('Failed to pre-fetch admin email:', e);
+      }
+    }
+    fetchAdminEmail();
   }, []);
 
   useEffect(() => {
@@ -375,59 +387,61 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
     }
   };
 
-  // Handle preset Admin Login verify
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  // Handle database Admin Login verify
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     setAuthLoading(true);
 
-    const storedEmail = localStorage.getItem('daniel_admin_email') || PRESET_EMAIL;
-    const storedPassword = localStorage.getItem('daniel_admin_password') || PRESET_PASSWORD;
-
-    setTimeout(() => {
-      if (email.trim().toLowerCase() === storedEmail.toLowerCase() && password === storedPassword) {
+    try {
+      const dbCreds = await getAdminSettings();
+      if (email.trim().toLowerCase() === dbCreds.email.toLowerCase() && password === dbCreds.pass) {
         setIsLoggedIn(true);
         localStorage.setItem('daniel_admin_logged', 'true');
+        setAdminEmailInput(dbCreds.email);
       } else {
         setLoginError('Kredensial salah! Silakan gunakan email & password admin Anda.');
       }
+    } catch (err) {
+      console.error('Login error:', err);
+      setLoginError('Terjadi kesalahan koneksi database saat memverifikasi login.');
+    } finally {
       setAuthLoading(false);
-    }, 800);
+    }
   };
 
-  // Handle saving new account settings / password
-  const handleUpdateSettings = (e: React.FormEvent) => {
+  // Handle saving new account settings / password in database
+  const handleUpdateSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSettingsSuccessMsg('');
     setSettingsErrorMsg('');
 
-    const storedPassword = localStorage.getItem('daniel_admin_password') || PRESET_PASSWORD;
-
-    if (currentPasswordInput !== storedPassword) {
-      setSettingsErrorMsg('Password saat ini salah!');
-      return;
-    }
-
-    if (!newPasswordInput) {
-      setSettingsErrorMsg('Password baru tidak boleh kosong!');
-      return;
-    }
-
-    if (newPasswordInput !== confirmPasswordInput) {
-      setSettingsErrorMsg('Konfirmasi password baru tidak cocok!');
-      return;
-    }
-
     try {
-      localStorage.setItem('daniel_admin_email', adminEmailInput.trim().toLowerCase());
-      localStorage.setItem('daniel_admin_password', newPasswordInput);
+      const dbCreds = await getAdminSettings();
+
+      if (currentPasswordInput !== dbCreds.pass) {
+        setSettingsErrorMsg('Password saat ini salah!');
+        return;
+      }
+
+      if (!newPasswordInput) {
+        setSettingsErrorMsg('Password baru tidak boleh kosong!');
+        return;
+      }
+
+      if (newPasswordInput !== confirmPasswordInput) {
+        setSettingsErrorMsg('Konfirmasi password baru tidak cocok!');
+        return;
+      }
+
+      await updateAdminSettings(adminEmailInput.trim().toLowerCase(), newPasswordInput);
       
-      setSettingsSuccessMsg('Email dan Password admin berhasil diperbarui!');
+      setSettingsSuccessMsg('Email dan Password admin berhasil diperbarui di database!');
       setCurrentPasswordInput('');
       setNewPasswordInput('');
       setConfirmPasswordInput('');
     } catch (err) {
-      setSettingsErrorMsg('Gagal menyimpan perubahan.');
+      setSettingsErrorMsg('Gagal menyimpan perubahan ke database.');
     }
   };
 
