@@ -50,7 +50,11 @@ import {
   updateSkillCategoryInSupabase as updateSkillCategoryInFirestore,
   deleteSkillCategoryFromSupabase as deleteSkillCategoryFromFirestore,
   getAdminSettingsFromSupabase as getAdminSettings,
-  updateAdminSettingsInSupabase as updateAdminSettings
+  updateAdminSettingsInSupabase as updateAdminSettings,
+  getPortfolioCategoriesFromSupabase,
+  addPortfolioCategoryInSupabase,
+  updatePortfolioCategoryInSupabase,
+  deletePortfolioCategoryFromSupabase
 } from '../supabaseService';
 
 interface AdminPanelProps {
@@ -76,7 +80,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
   const [currentPasswordInput, setCurrentPasswordInput] = useState('');
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
-  const [adminEmailInput, setAdminEmailInput] = useState(localStorage.getItem('daniel_admin_email') || PRESET_EMAIL);
+  const [adminEmailInput, setAdminEmailInput] = useState(PRESET_EMAIL);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState('');
   const [settingsErrorMsg, setSettingsErrorMsg] = useState('');
 
@@ -130,20 +134,12 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
   const [formCategory, setFormCategory] = useState<string>('web');
 
   // Dynamic Portfolio Categories State
-  const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>(() => {
-    const saved = localStorage.getItem('portfolio_categories');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return [
-      { id: 'web', label: 'Web' },
-      { id: 'photography', label: 'Photo' },
-      { id: 'design', label: 'Design' },
-      { id: 'certificate', label: 'Certificates' }
-    ];
-  });
+  const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>([
+    { id: 'web', label: 'Web' },
+    { id: 'photography', label: 'Photo' },
+    { id: 'design', label: 'Design' },
+    { id: 'certificate', label: 'Certificates' }
+  ]);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [newCatId, setNewCatId] = useState('');
   const [newCatLabel, setNewCatLabel] = useState('');
@@ -238,23 +234,31 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; type: 'project' | 'message' | 'experience' | 'service' | 'skillCategory'; title: string } | null>(null);
 
-  // Load projects and inbox messages on mount
+  // Load projects, categories and inbox messages on mount
   useEffect(() => {
-    // Attempt local auto login session
-    const savedSession = localStorage.getItem('daniel_admin_logged');
+    // Attempt session login
+    const savedSession = sessionStorage.getItem('daniel_admin_logged');
     if (savedSession === 'true') {
       setIsLoggedIn(true);
     }
 
-    async function fetchAdminEmail() {
+    async function loadInitialData() {
       try {
-        const dbCreds = await getAdminSettings();
-        setAdminEmailInput(dbCreds.email);
+        const [dbCreds, categories] = await Promise.all([
+          getAdminSettings(),
+          getPortfolioCategoriesFromSupabase()
+        ]);
+        if (dbCreds) {
+          setAdminEmailInput(dbCreds.email);
+        }
+        if (categories && categories.length > 0) {
+          setPortfolioCategories(categories);
+        }
       } catch (e) {
-        console.error('Failed to pre-fetch admin email:', e);
+        console.error('Failed to pre-fetch initial data:', e);
       }
     }
-    fetchAdminEmail();
+    loadInitialData();
   }, []);
 
   useEffect(() => {
@@ -397,7 +401,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
       const dbCreds = await getAdminSettings();
       if (email.trim().toLowerCase() === dbCreds.email.toLowerCase() && password === dbCreds.pass) {
         setIsLoggedIn(true);
-        localStorage.setItem('daniel_admin_logged', 'true');
+        sessionStorage.setItem('daniel_admin_logged', 'true');
         setAdminEmailInput(dbCreds.email);
       } else {
         setLoginError('Kredensial salah! Silakan gunakan email & password admin Anda.');
@@ -448,7 +452,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
   // Handle Logout process
   const handleLogout = () => {
     setIsLoggedIn(false);
-    localStorage.removeItem('daniel_admin_logged');
+    sessionStorage.removeItem('daniel_admin_logged');
     setEmail('');
     setPassword('');
   };
@@ -486,8 +490,8 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
     setIsProjectModalOpen(true);
   };
 
-  // Save dynamic category changes
-  const handleSaveCategory = (e: React.FormEvent) => {
+  // Save dynamic category changes to database
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setCatError('');
     if (!newCatId.trim() || !newCatLabel.trim()) return;
@@ -503,12 +507,17 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
       return;
     }
 
-    const updated = [...portfolioCategories, { id: formattedId, label: newCatLabel.trim() }];
-    setPortfolioCategories(updated);
-    localStorage.setItem('portfolio_categories', JSON.stringify(updated));
-    window.dispatchEvent(new Event('categories-changed'));
-    setNewCatId('');
-    setNewCatLabel('');
+    try {
+      await addPortfolioCategoryInSupabase(formattedId, newCatLabel.trim());
+      const updated = [...portfolioCategories, { id: formattedId, label: newCatLabel.trim() }];
+      setPortfolioCategories(updated);
+      window.dispatchEvent(new Event('categories-changed'));
+      setNewCatId('');
+      setNewCatLabel('');
+    } catch (err) {
+      console.error(err);
+      setCatError('Gagal menyimpan kategori baru ke database.');
+    }
   };
 
   const handleStartEditCategory = (id: string, label: string) => {
@@ -516,25 +525,35 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
     setEditingCatLabel(label);
   };
 
-  const handleUpdateCategory = (id: string) => {
+  const handleUpdateCategory = async (id: string) => {
     setCatError('');
     if (!editingCatLabel.trim()) return;
-    const updated = portfolioCategories.map(cat => 
-      cat.id === id ? { ...cat, label: editingCatLabel.trim() } : cat
-    );
-    setPortfolioCategories(updated);
-    localStorage.setItem('portfolio_categories', JSON.stringify(updated));
-    window.dispatchEvent(new Event('categories-changed'));
-    setEditingCatId(null);
-    setEditingCatLabel('');
+    try {
+      await updatePortfolioCategoryInSupabase(id, editingCatLabel.trim());
+      const updated = portfolioCategories.map(cat => 
+        cat.id === id ? { ...cat, label: editingCatLabel.trim() } : cat
+      );
+      setPortfolioCategories(updated);
+      window.dispatchEvent(new Event('categories-changed'));
+      setEditingCatId(null);
+      setEditingCatLabel('');
+    } catch (err) {
+      console.error(err);
+      setCatError('Gagal memperbarui kategori di database.');
+    }
   };
 
-  const handleDeleteCategory = (id: string) => {
+  const handleDeleteCategory = async (id: string) => {
     setCatError('');
-    const updated = portfolioCategories.filter(cat => cat.id !== id);
-    setPortfolioCategories(updated);
-    localStorage.setItem('portfolio_categories', JSON.stringify(updated));
-    window.dispatchEvent(new Event('categories-changed'));
+    try {
+      await deletePortfolioCategoryFromSupabase(id);
+      const updated = portfolioCategories.filter(cat => cat.id !== id);
+      setPortfolioCategories(updated);
+      window.dispatchEvent(new Event('categories-changed'));
+    } catch (err) {
+      console.error(err);
+      setCatError('Gagal menghapus kategori dari database.');
+    }
   };
 
   // Save Project Action handler

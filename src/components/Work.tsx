@@ -2,53 +2,46 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ExternalLink, Layers, Laptop, Camera, Feather, Award, Search, Info, X } from 'lucide-react';
 import { Project } from '../types';
-import { getProjectsFromSupabase } from '../supabaseService';
+import { getProjectsFromSupabase, getPortfolioCategoriesFromSupabase } from '../supabaseService';
 
 export default function Work() {
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [selectedDetail, setSelectedDetail] = useState<Project | null>(null);
   const [projectsList, setProjectsList] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>(() => {
-    const saved = localStorage.getItem('portfolio_categories');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return [
-      { id: 'web', label: 'Web' },
-      { id: 'photography', label: 'Photo' },
-      { id: 'design', label: 'Design' },
-      { id: 'certificate', label: 'Certificates' }
-    ];
-  });
+  const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>(() => [
+    { id: 'web', label: 'Web' },
+    { id: 'photography', label: 'Photo' },
+    { id: 'design', label: 'Design' },
+    { id: 'certificate', label: 'Certificates' }
+  ]);
 
   useEffect(() => {
-    async function fetchProjects() {
+    async function fetchProjectsAndCategories() {
       try {
-        const data = await getProjectsFromSupabase();
-        setProjectsList(data || []);
+        const [projects, categories] = await Promise.all([
+          getProjectsFromSupabase(),
+          getPortfolioCategoriesFromSupabase()
+        ]);
+        setProjectsList(projects || []);
+        if (categories && categories.length > 0) {
+          setPortfolioCategories(categories);
+        }
       } catch (err) {
-        console.error('Error loading portfolio:', err);
+        console.error('Error loading portfolio or categories:', err);
       } finally {
         setIsLoading(false);
       }
     }
-    fetchProjects();
+    fetchProjectsAndCategories();
 
     // Listen to local admin modifications to sync portfolio on the fly
     const handlePortfolioChange = () => {
-      fetchProjects();
+      fetchProjectsAndCategories();
     };
     
     const handleCategoriesChange = () => {
-      const saved = localStorage.getItem('portfolio_categories');
-      if (saved) {
-        try {
-          setPortfolioCategories(JSON.parse(saved));
-        } catch (e) {}
-      }
+      fetchProjectsAndCategories();
     };
 
     window.addEventListener('portfolio-changed', handlePortfolioChange);

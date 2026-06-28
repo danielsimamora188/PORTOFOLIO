@@ -607,8 +607,8 @@ export async function getAdminSettingsFromSupabase(): Promise<{ email: string; p
   const supabase = getSupabase();
   if (!supabase) {
     return {
-      email: localStorage.getItem('daniel_admin_email') || 'daniel.admin@gmail.com',
-      pass: localStorage.getItem('daniel_admin_password') || 'danieladmin123'
+      email: 'daniel.admin@gmail.com',
+      pass: 'danieladmin123'
     };
   }
 
@@ -621,11 +621,11 @@ export async function getAdminSettingsFromSupabase(): Promise<{ email: string; p
         await supabase.from('admin_settings').insert([seedAdmin]);
         return { email: seedAdmin.email, pass: seedAdmin.password };
       } else {
-        // Any other error (e.g. table doesn't exist yet), fallback to localStorage/presets
-        console.warn('Supabase admin_settings fetch error, falling back to local storage / presets:', error);
+        // Any other error (e.g. table doesn't exist yet), fallback to presets
+        console.warn('Supabase admin_settings fetch error, falling back to presets:', error);
         return {
-          email: localStorage.getItem('daniel_admin_email') || 'daniel.admin@gmail.com',
-          pass: localStorage.getItem('daniel_admin_password') || 'danieladmin123'
+          email: 'daniel.admin@gmail.com',
+          pass: 'danieladmin123'
         };
       }
     }
@@ -633,8 +633,8 @@ export async function getAdminSettingsFromSupabase(): Promise<{ email: string; p
   } catch (err) {
     console.error('Supabase admin_settings error:', err);
     return {
-      email: localStorage.getItem('daniel_admin_email') || 'daniel.admin@gmail.com',
-      pass: localStorage.getItem('daniel_admin_password') || 'danieladmin123'
+      email: 'daniel.admin@gmail.com',
+      pass: 'danieladmin123'
     };
   }
 }
@@ -642,24 +642,76 @@ export async function getAdminSettingsFromSupabase(): Promise<{ email: string; p
 export async function updateAdminSettingsInSupabase(email: string, pass: string): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) {
-    localStorage.setItem('daniel_admin_email', email);
-    localStorage.setItem('daniel_admin_password', pass);
-    return;
+    throw new Error('Supabase client not initialized');
+  }
+
+  const { error } = await supabase.from('admin_settings').upsert({ id: 'admin-auth', email, password: pass });
+  if (error) {
+    console.error('Supabase admin_settings upsert error:', error);
+    throw error;
+  }
+}
+
+// =========================================================================
+// PORTFOLIO CATEGORIES MANAGEMENT
+// =========================================================================
+
+const DEFAULT_PORTFOLIO_CATEGORIES = [
+  { id: 'web', label: 'Web' },
+  { id: 'photography', label: 'Photo' },
+  { id: 'design', label: 'Design' },
+  { id: 'certificate', label: 'Certificates' }
+];
+
+export async function getPortfolioCategoriesFromSupabase(): Promise<{ id: string; label: string }[]> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return DEFAULT_PORTFOLIO_CATEGORIES;
   }
 
   try {
-    const { error } = await supabase.from('admin_settings').upsert({ id: 'admin-auth', email, password: pass });
+    const { data, error } = await supabase.from('portfolio_categories').select('*').order('created_at', { ascending: true });
     if (error) {
-      console.warn('Supabase admin_settings upsert error, saving locally as fallback:', error);
-      localStorage.setItem('daniel_admin_email', email);
-      localStorage.setItem('daniel_admin_password', pass);
-    } else {
-      localStorage.setItem('daniel_admin_email', email);
-      localStorage.setItem('daniel_admin_password', pass);
+      // If table doesn't exist or other error, fallback to defaults
+      console.warn('Supabase portfolio_categories fetch error, falling back to default categories:', error);
+      return DEFAULT_PORTFOLIO_CATEGORIES;
     }
+    if (!data || data.length === 0) {
+      // Seed table with defaults
+      try {
+        await supabase.from('portfolio_categories').insert(DEFAULT_PORTFOLIO_CATEGORIES);
+      } catch (seedErr) {
+        console.warn('Failed to seed portfolio_categories:', seedErr);
+      }
+      return DEFAULT_PORTFOLIO_CATEGORIES;
+    }
+    return data.map((item: any) => ({
+      id: item.id,
+      label: item.label
+    }));
   } catch (err) {
-    console.error('Supabase admin_settings upsert error:', err);
-    localStorage.setItem('daniel_admin_email', email);
-    localStorage.setItem('daniel_admin_password', pass);
+    console.error('Supabase portfolio_categories error:', err);
+    return DEFAULT_PORTFOLIO_CATEGORIES;
   }
+}
+
+export async function addPortfolioCategoryInSupabase(id: string, label: string): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase client not initialized');
+  const { error } = await supabase.from('portfolio_categories').insert([{ id, label }]);
+  if (error) throw error;
+}
+
+export async function updatePortfolioCategoryInSupabase(id: string, label: string): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase client not initialized');
+  const { error } = await supabase.from('portfolio_categories').update({ label }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deletePortfolioCategoryFromSupabase(id: string): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase client not initialized');
+  const { error } = await supabase.from('portfolio_categories').delete().eq('id', id);
+  if (error) throw error;
 }
