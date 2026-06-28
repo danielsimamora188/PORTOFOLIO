@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
+import {
   Landmark,
   Headset,
   CreditCard,
@@ -51,7 +51,7 @@ export default function Services() {
         setIsLoading(false);
       }
     }
-    
+
     async function fetchServices() {
       try {
         const data = await getServicesFromSupabase();
@@ -81,7 +81,7 @@ export default function Services() {
   return (
     <section id="services" className="py-24 bg-[var(--body-color)] relative">
       <div className="max-w-6xl mx-auto px-6">
-        
+
         {/* ================= WORK EXPERIENCE SECTION ================= */}
         <motion.div
           className="text-center mb-16"
@@ -103,9 +103,8 @@ export default function Services() {
           {experiencesList.map((exp, idx) => (
             <motion.div
               key={exp.id}
-              className={`bg-[var(--container-color)] p-8 rounded-3xl border border-gray-200/5 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col items-start group relative text-left h-full ${
-                idx === 2 && experiencesList.length === 3 ? 'md:col-span-2 lg:col-span-1' : ''
-              }`}
+              className={`bg-[var(--container-color)] p-8 rounded-3xl border border-gray-200/5 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col items-start group relative text-left h-full ${idx === 2 && experiencesList.length === 3 ? 'md:col-span-2 lg:col-span-1' : ''
+                }`}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}
@@ -115,13 +114,13 @@ export default function Services() {
               <div className="w-full flex justify-between items-center mb-6">
                 <div className="p-4 bg-gradient-to-br from-indigo-500/20 to-[var(--first-color)]/10 rounded-2xl text-[var(--first-color)] transition-all duration-300 group-hover:scale-110">
                   {exp.imageUrl ? (
-                    <img 
-                      src={exp.imageUrl} 
-                      alt={exp.company} 
+                    <img
+                      src={exp.imageUrl}
+                      alt={exp.company}
                       className="w-7 h-7 object-contain rounded-md"
-                      onError={(e) => { 
-                        (e.target as any).onerror = null; 
-                        (e.target as any).style.display = 'none'; 
+                      onError={(e) => {
+                        (e.target as any).onerror = null;
+                        (e.target as any).style.display = 'none';
                       }}
                     />
                   ) : (
@@ -180,9 +179,8 @@ export default function Services() {
               return (
                 <motion.div
                   key={index}
-                  className={`bg-[var(--container-color)] p-8 rounded-3xl border border-gray-200/5 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col items-start group relative text-left h-full ${
-                    index === 2 && servicesList.length === 3 ? 'md:col-span-2 lg:col-span-1' : ''
-                  }`}
+                  className={`bg-[var(--container-color)] p-8 rounded-3xl border border-gray-200/5 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col items-start group relative text-left h-full ${index === 2 && servicesList.length === 3 ? 'md:col-span-2 lg:col-span-1' : ''
+                    }`}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-50px' }}
@@ -344,7 +342,7 @@ export default function Services() {
 
               <div className="space-y-4">
                 <span className="text-xs font-bold text-[var(--title-color)] uppercase tracking-wider block">
-                  Detail Pekerjaan:
+                  Work Details:
                 </span>
                 <ul className="space-y-3">
                   {servicesList[activeServiceModal].checklist && servicesList[activeServiceModal].checklist.map((item, index) => (
