@@ -1,7 +1,7 @@
 export interface Project {
   id: string;
   title: string;
-  category: 'web' | 'photography' | 'design' | 'certificate';
+  category: string;
   description: string;
   imageUrl?: string;
   buttonLink?: string;

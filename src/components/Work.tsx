@@ -5,10 +5,24 @@ import { Project } from '../types';
 import { getProjectsFromSupabase } from '../supabaseService';
 
 export default function Work() {
-  const [activeFilter, setActiveFilter] = useState<'all' | 'web' | 'photography' | 'design' | 'certificate'>('all');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [selectedDetail, setSelectedDetail] = useState<Project | null>(null);
   const [projectsList, setProjectsList] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>(() => {
+    const saved = localStorage.getItem('portfolio_categories');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      { id: 'web', label: 'Web' },
+      { id: 'photography', label: 'Photo' },
+      { id: 'design', label: 'Design' },
+      { id: 'certificate', label: 'Certificates' }
+    ];
+  });
 
   useEffect(() => {
     async function fetchProjects() {
@@ -27,18 +41,41 @@ export default function Work() {
     const handlePortfolioChange = () => {
       fetchProjects();
     };
+    
+    const handleCategoriesChange = () => {
+      const saved = localStorage.getItem('portfolio_categories');
+      if (saved) {
+        try {
+          setPortfolioCategories(JSON.parse(saved));
+        } catch (e) {}
+      }
+    };
+
     window.addEventListener('portfolio-changed', handlePortfolioChange);
+    window.addEventListener('categories-changed', handleCategoriesChange);
     return () => {
       window.removeEventListener('portfolio-changed', handlePortfolioChange);
+      window.removeEventListener('categories-changed', handleCategoriesChange);
     };
   }, []);
 
-  const filters: { id: typeof activeFilter; label: string; icon: any }[] = [
+  const getIconForCategory = (id: string) => {
+    switch (id) {
+      case 'web': return Laptop;
+      case 'photography': return Camera;
+      case 'design': return Feather;
+      case 'certificate': return Award;
+      default: return Laptop;
+    }
+  };
+
+  const filters = [
     { id: 'all', label: 'All', icon: Layers },
-    { id: 'web', label: 'Web', icon: Laptop },
-    { id: 'photography', label: 'Photo', icon: Camera },
-    { id: 'design', label: 'Design', icon: Feather },
-    { id: 'certificate', label: 'Certificates', icon: Award },
+    ...portfolioCategories.map(cat => ({
+      id: cat.id,
+      label: cat.label,
+      icon: getIconForCategory(cat.id)
+    }))
   ];
 
   const filteredProjects = projectsList.filter((proj) => {
@@ -137,6 +174,24 @@ export default function Work() {
             <div className="flex justify-between items-center text-[8px] font-mono text-amber-500/50 border-t border-amber-500/10 pt-2">
               <span>ID: {(proj.id || '').substring(0, 8).toUpperCase()}</span>
               <span>BNSP / IPB APPROVED</span>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-slate-950 flex flex-col justify-between p-4 text-white font-mono select-none">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="text-[10px] text-indigo-300 uppercase tracking-wider">{proj.category}</span>
+              <Layers size={12} className="text-indigo-400" />
+            </div>
+            <div className="flex-grow flex flex-col justify-center items-center text-center px-4">
+              <Laptop size={24} className="text-indigo-400 mb-2" />
+              <h4 className="text-xs font-bold text-white mt-1 mb-1 tracking-tight">{proj.title}</h4>
+              <p className="text-[9px] text-gray-400 leading-tight line-clamp-2">{proj.description}</p>
+            </div>
+            <div className="flex items-center justify-between text-[8px] text-indigo-400 border-t border-white/5 pt-2">
+              <span>WORK</span>
+              <span>DANIEL TULUS</span>
             </div>
           </div>
         );

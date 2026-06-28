@@ -22,7 +22,9 @@ import {
   Briefcase,
   MailOpen,
   GraduationCap,
-  Upload
+  Upload,
+  Settings,
+  Key
 } from 'lucide-react';
 import { Project, Experience, Biodata, ServiceItem, SkillCategory, Skill, ContactMessage } from '../types';
 import { 
@@ -66,7 +68,15 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
   const [authLoading, setAuthLoading] = useState(false);
 
   // Active Dashboard Tab
-  const [activeTab, setActiveTab] = useState<'projects' | 'messages' | 'experiences' | 'biodata' | 'services' | 'skills'>('projects');
+  const [activeTab, setActiveTab] = useState<'projects' | 'messages' | 'experiences' | 'biodata' | 'services' | 'skills' | 'settings'>('projects');
+
+  // Change Password / Settings states
+  const [currentPasswordInput, setCurrentPasswordInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [adminEmailInput, setAdminEmailInput] = useState(localStorage.getItem('daniel_admin_email') || PRESET_EMAIL);
+  const [settingsSuccessMsg, setSettingsSuccessMsg] = useState('');
+  const [settingsErrorMsg, setSettingsErrorMsg] = useState('');
 
   // Firestore Projects dynamic data state
   const [projects, setProjects] = useState<Project[]>([]);
@@ -115,7 +125,29 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
 
   // New/Edit Project Form Fields
   const [formTitle, setFormTitle] = useState('');
-  const [formCategory, setFormCategory] = useState<'web' | 'photography' | 'design' | 'certificate'>('web');
+  const [formCategory, setFormCategory] = useState<string>('web');
+
+  // Dynamic Portfolio Categories State
+  const [portfolioCategories, setPortfolioCategories] = useState<{ id: string; label: string }[]>(() => {
+    const saved = localStorage.getItem('portfolio_categories');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      { id: 'web', label: 'Web' },
+      { id: 'photography', label: 'Photo' },
+      { id: 'design', label: 'Design' },
+      { id: 'certificate', label: 'Certificates' }
+    ];
+  });
+  const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
+  const [newCatId, setNewCatId] = useState('');
+  const [newCatLabel, setNewCatLabel] = useState('');
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingCatLabel, setEditingCatLabel] = useState('');
+  const [catError, setCatError] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
   const [formButtonLink, setFormButtonLink] = useState('');
@@ -349,15 +381,54 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
     setLoginError('');
     setAuthLoading(true);
 
+    const storedEmail = localStorage.getItem('daniel_admin_email') || PRESET_EMAIL;
+    const storedPassword = localStorage.getItem('daniel_admin_password') || PRESET_PASSWORD;
+
     setTimeout(() => {
-      if (email.trim().toLowerCase() === PRESET_EMAIL && password === PRESET_PASSWORD) {
+      if (email.trim().toLowerCase() === storedEmail.toLowerCase() && password === storedPassword) {
         setIsLoggedIn(true);
         localStorage.setItem('daniel_admin_logged', 'true');
       } else {
-        setLoginError('Kredensial salah! Silakan gunakan email & password preset admin.');
+        setLoginError('Kredensial salah! Silakan gunakan email & password admin Anda.');
       }
       setAuthLoading(false);
     }, 800);
+  };
+
+  // Handle saving new account settings / password
+  const handleUpdateSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsSuccessMsg('');
+    setSettingsErrorMsg('');
+
+    const storedPassword = localStorage.getItem('daniel_admin_password') || PRESET_PASSWORD;
+
+    if (currentPasswordInput !== storedPassword) {
+      setSettingsErrorMsg('Password saat ini salah!');
+      return;
+    }
+
+    if (!newPasswordInput) {
+      setSettingsErrorMsg('Password baru tidak boleh kosong!');
+      return;
+    }
+
+    if (newPasswordInput !== confirmPasswordInput) {
+      setSettingsErrorMsg('Konfirmasi password baru tidak cocok!');
+      return;
+    }
+
+    try {
+      localStorage.setItem('daniel_admin_email', adminEmailInput.trim().toLowerCase());
+      localStorage.setItem('daniel_admin_password', newPasswordInput);
+      
+      setSettingsSuccessMsg('Email dan Password admin berhasil diperbarui!');
+      setCurrentPasswordInput('');
+      setNewPasswordInput('');
+      setConfirmPasswordInput('');
+    } catch (err) {
+      setSettingsErrorMsg('Gagal menyimpan perubahan.');
+    }
   };
 
   // Handle Logout process
@@ -393,12 +464,63 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
     setEditingProjectId(project?.id || null);
     
     setFormTitle(project?.title || '');
-    setFormCategory(project?.category || 'web');
+    setFormCategory(project?.category || (portfolioCategories[0]?.id || 'web'));
     setFormDescription(project?.description || '');
     setFormImageUrl(project?.imageUrl || '');
     setFormButtonLink(project?.buttonLink || '');
 
     setIsProjectModalOpen(true);
+  };
+
+  // Save dynamic category changes
+  const handleSaveCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCatError('');
+    if (!newCatId.trim() || !newCatLabel.trim()) return;
+
+    const formattedId = newCatId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    if (!formattedId) {
+      setCatError('ID Kategori tidak valid!');
+      return;
+    }
+
+    if (portfolioCategories.some(cat => cat.id === formattedId)) {
+      setCatError('Kategori dengan ID ini sudah ada!');
+      return;
+    }
+
+    const updated = [...portfolioCategories, { id: formattedId, label: newCatLabel.trim() }];
+    setPortfolioCategories(updated);
+    localStorage.setItem('portfolio_categories', JSON.stringify(updated));
+    window.dispatchEvent(new Event('categories-changed'));
+    setNewCatId('');
+    setNewCatLabel('');
+  };
+
+  const handleStartEditCategory = (id: string, label: string) => {
+    setEditingCatId(id);
+    setEditingCatLabel(label);
+  };
+
+  const handleUpdateCategory = (id: string) => {
+    setCatError('');
+    if (!editingCatLabel.trim()) return;
+    const updated = portfolioCategories.map(cat => 
+      cat.id === id ? { ...cat, label: editingCatLabel.trim() } : cat
+    );
+    setPortfolioCategories(updated);
+    localStorage.setItem('portfolio_categories', JSON.stringify(updated));
+    window.dispatchEvent(new Event('categories-changed'));
+    setEditingCatId(null);
+    setEditingCatLabel('');
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    setCatError('');
+    const updated = portfolioCategories.filter(cat => cat.id !== id);
+    setPortfolioCategories(updated);
+    localStorage.setItem('portfolio_categories', JSON.stringify(updated));
+    window.dispatchEvent(new Event('categories-changed'));
   };
 
   // Save Project Action handler
@@ -754,12 +876,7 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                 <p className="text-xs text-[var(--text-color-light)] mt-1.5">Masuk untuk mengelola data works & inbox pesan.</p>
               </div>
 
-              {/* Preset credentials cue for demo purpose */}
-              <div className="p-3.5 mb-6 rounded-xl text-[11px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono">
-                <span className="font-bold underline block mb-1">Demo Admin Credentials:</span>
-                <div>Email: {PRESET_EMAIL}</div>
-                <div>Pass: {PRESET_PASSWORD}</div>
-              </div>
+
 
               {loginError && (
                 <div className="p-3 mb-4 rounded-xl text-xs bg-red-500/10 border border-red-500/20 text-red-400/90 font-medium">
@@ -896,6 +1013,18 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                 <span>My Skills</span>
               </button>
 
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`shrink-0 md:w-full py-2 px-2.5 md:p-3 rounded-lg md:rounded-xl text-left text-[11px] md:text-xs font-bold flex items-center gap-1.5 md:gap-2 transition-all cursor-pointer ${
+                  activeTab === 'settings' 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10' 
+                    : 'text-[var(--text-color-light)] hover:bg-indigo-500/5 hover:text-blue-500'
+                }`}
+              >
+                <Settings size={14} className="md:w-[15px] md:h-[15px]" />
+                <span>Pengaturan Akun</span>
+              </button>
+
               <div className="flex-grow hidden md:block" />
 
               <button
@@ -935,13 +1064,22 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                       </h2>
                       <p className="text-xs text-[var(--text-color-light)] mt-1">Buat, modifikasi, dan hapus proyek portfolio yang tersimpan di Firestore.</p>
                     </div>
-                    <button
-                      onClick={() => openProjectModal('create')}
-                      className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer shrink-0"
-                    >
-                      <Plus size={16} />
-                      Tambah Karya Baru
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => setIsCategoriesModalOpen(true)}
+                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/50 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+                      >
+                        <Settings size={14} />
+                        Kelola Kategori
+                      </button>
+                      <button
+                        onClick={() => openProjectModal('create')}
+                        className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <Plus size={16} />
+                        Tambah Karya Baru
+                      </button>
+                    </div>
                   </div>
 
                   {projectsLoading ? (
@@ -1771,6 +1909,102 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                 </div>
               )}
 
+              {activeTab === 'settings' && (
+                <div className="flex-grow flex flex-col gap-5 text-left max-w-2xl mx-auto w-full">
+                  <div>
+                    <h2 className="text-xl font-extrabold flex items-center gap-2">
+                      <Settings size={20} className="text-blue-500" />
+                      Pengaturan Akun Admin
+                    </h2>
+                    <p className="text-xs text-[var(--text-color-light)] mt-1">Ubah email login dan password administrator. Perubahan ini disimpan secara aman di browser lokal Anda.</p>
+                  </div>
+
+                  <form onSubmit={handleUpdateSettings} className="space-y-5 mt-4">
+                    {settingsSuccessMsg && (
+                      <div className="p-3.5 rounded-2xl text-xs bg-emerald-500/15 border border-emerald-500/25 text-emerald-500 font-semibold flex items-center gap-2">
+                        <CheckCircle2 size={16} />
+                        {settingsSuccessMsg}
+                      </div>
+                    )}
+
+                    {settingsErrorMsg && (
+                      <div className="p-3.5 rounded-2xl text-xs bg-red-500/15 border border-red-500/25 text-red-400 font-semibold flex items-center gap-2">
+                        <X size={16} />
+                        {settingsErrorMsg}
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-[var(--title-color)]">Email Admin</label>
+                      <div className="relative">
+                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <input
+                          type="email"
+                          required
+                          value={adminEmailInput}
+                          onChange={(e) => setAdminEmailInput(e.target.value)}
+                          placeholder="Masukkan email baru"
+                          className="w-full pl-10 pr-4 py-3 rounded-xl bg-transparent border border-gray-200/15 focus:border-blue-500/50 focus:outline-none text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-[var(--title-color)]">Password Saat Ini</label>
+                      <div className="relative">
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <input
+                          type="password"
+                          required
+                          value={currentPasswordInput}
+                          onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                          placeholder="Password saat ini untuk konfirmasi"
+                          className="w-full pl-10 pr-4 py-3 rounded-xl bg-transparent border border-gray-200/15 focus:border-blue-500/50 focus:outline-none text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-[var(--title-color)]">Password Baru</label>
+                      <div className="relative">
+                        <Key size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <input
+                          type="password"
+                          required
+                          value={newPasswordInput}
+                          onChange={(e) => setNewPasswordInput(e.target.value)}
+                          placeholder="Password baru"
+                          className="w-full pl-10 pr-4 py-3 rounded-xl bg-transparent border border-gray-200/15 focus:border-blue-500/50 focus:outline-none text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-[var(--title-color)]">Konfirmasi Password Baru</label>
+                      <div className="relative">
+                        <Key size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <input
+                          type="password"
+                          required
+                          value={confirmPasswordInput}
+                          onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                          placeholder="Ulangi password baru"
+                          className="w-full pl-10 pr-4 py-3 rounded-xl bg-transparent border border-gray-200/15 focus:border-blue-500/50 focus:outline-none text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-3 mt-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-2 hover:opacity-95 shadow-md shadow-blue-500/20"
+                    >
+                      <Save size={14} />
+                      Simpan Perubahan
+                    </button>
+                  </form>
+                </div>
+              )}
+
             </div>
           </div>
         )}
@@ -1812,10 +2046,11 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                     onChange={(e: any) => setFormCategory(e.target.value)}
                     className="w-full p-3 rounded-xl bg-[var(--body-color)] border border-gray-200/5 focus:border-blue-500/50 focus:outline-none text-xs text-[var(--title-color)]"
                   >
-                    <option value="web">Web Application</option>
-                    <option value="photography">Photography</option>
-                    <option value="design">Graphic Design / Video Edit</option>
-                    <option value="certificate">Professional Certificate</option>
+                    {portfolioCategories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -2357,6 +2592,143 @@ export default function AdminPanel({ onClose, isLightTheme }: AdminPanelProps) {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+
+
+        {isCategoriesModalOpen && (
+          <div className="fixed inset-0 z-[1000] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div 
+              className={`w-full max-w-lg p-6 sm:p-8 rounded-3xl border shadow-2xl relative ${
+                isLightTheme ? 'bg-white border-white' : 'bg-slate-900 border-slate-800'
+              }`}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <button 
+                onClick={() => {
+                  setIsCategoriesModalOpen(false);
+                  setCatError('');
+                }}
+                className="absolute top-5 right-5 p-1.5 rounded-full hover:bg-gray-500/10 text-gray-400 hover:text-[var(--title-color)] transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="text-left mb-6">
+                <h3 className="text-lg font-extrabold flex items-center gap-2">
+                  <Settings size={18} className="text-blue-500" />
+                  Kelola Kategori Portofolio
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">Ubah atau tambahkan kategori karya portofolio Anda.</p>
+              </div>
+
+              {catError && (
+                <div className="p-3 mb-4 rounded-xl text-xs bg-red-500/10 border border-red-500/20 text-red-400 font-medium text-left">
+                  {catError}
+                </div>
+              )}
+
+              {/* Form Tambah Kategori */}
+              <form onSubmit={handleSaveCategory} className="mb-6 pb-6 border-b border-gray-200/5 text-left space-y-3">
+                <h4 className="text-xs font-extrabold text-[var(--title-color)] uppercase tracking-wider">Tambah Kategori Baru</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-gray-400 font-bold uppercase">ID Kategori (slug)</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Contoh: mobile, design, iot"
+                      value={newCatId}
+                      onChange={(e) => setNewCatId(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-[var(--body-color)] border border-gray-200/5 focus:border-blue-500/50 focus:outline-none text-xs text-[var(--title-color)] font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-gray-400 font-bold uppercase">Label Display</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Contoh: Mobile Apps, IoT Research"
+                      value={newCatLabel}
+                      onChange={(e) => setNewCatLabel(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-[var(--body-color)] border border-gray-200/5 focus:border-blue-500/50 focus:outline-none text-xs text-[var(--title-color)]"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold active:scale-95 transition-all cursor-pointer shadow-md shadow-blue-500/15"
+                >
+                  + Tambahkan Kategori
+                </button>
+              </form>
+
+              {/* Daftar Kategori */}
+              <div className="text-left space-y-3 max-h-60 overflow-y-auto">
+                <h4 className="text-xs font-extrabold text-[var(--title-color)] uppercase tracking-wider">Daftar Kategori Saat Ini</h4>
+                <div className="space-y-2">
+                  {portfolioCategories.map((cat) => (
+                    <div 
+                      key={cat.id} 
+                      className={`flex items-center justify-between p-3 rounded-xl border ${
+                        isLightTheme ? 'bg-neutral-50 border-neutral-150' : 'bg-slate-950/40 border-slate-800'
+                      }`}
+                    >
+                      {editingCatId === cat.id ? (
+                        <div className="flex-grow flex items-center gap-2">
+                          <input
+                            type="text"
+                            required
+                            value={editingCatLabel}
+                            onChange={(e) => setEditingCatLabel(e.target.value)}
+                            className="flex-grow p-1.5 rounded-lg bg-[var(--body-color)] border border-blue-500/50 text-xs text-[var(--title-color)] focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateCategory(cat.id)}
+                            className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold cursor-pointer"
+                          >
+                            Simpan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingCatId(null)}
+                            className="p-1.5 rounded-lg bg-slate-800 text-gray-400 text-[10px] cursor-pointer"
+                          >
+                            Batal
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-[var(--title-color)]">{cat.label}</span>
+                            <span className="text-[9px] text-gray-500 font-mono">ID: {cat.id}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditCategory(cat.id, cat.label)}
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 text-[10px] font-bold cursor-pointer transition-all"
+                            >
+                              Edit Label
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCategory(cat.id)}
+                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold cursor-pointer transition-all"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           </div>
         )}
