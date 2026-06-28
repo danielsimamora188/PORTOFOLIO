@@ -263,7 +263,7 @@ export default function Services() {
                     {servicesList[activeModal].title}
                   </h3>
                   <span className="text-[11px] text-[var(--first-color)] font-medium uppercase tracking-widest block mt-0.5">
-                    Daniel Tulus Services
+                    Gilbert Services
                   </span>
                 </div>
               </div>
